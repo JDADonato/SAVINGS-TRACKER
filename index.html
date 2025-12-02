@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro | AMOLED</title>
+    <title>Saver Pro</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -24,12 +24,8 @@
                     colors: {
                         black: '#000000',
                         zinc: { 850: '#27272a', 900: '#18181b', 950: '#09090b' },
-                        primary: '#d8b4fe',   // Muted Premium Purple
-                        secondary: '#818cf8', // Indigo
-                        accent: '#2dd4bf',    // Teal
-                        success: '#34d399',
-                        danger: '#fb7185',
-                        warning: '#fbbf24',
+                        primary: '#d8b4fe', secondary: '#818cf8', accent: '#2dd4bf', 
+                        success: '#34d399', danger: '#fb7185', warning: '#fbbf24',
                     },
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     animation: { 'slide-up': 'slideUp 0.3s ease-out', 'fade-in': 'fadeIn 0.2s ease-out' },
@@ -43,41 +39,24 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
         body { background-color: #000000; color: #f4f4f5; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        /* AMOLED Glass: Darker, reduced transparency, subtle border */
-        .glass { 
-            background: rgba(24, 24, 27, 0.6); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        }
-        
-        /* Premium Gradients */
-        .text-gradient { background: linear-gradient(to right, #e9d5ff, #c4b5fd, #99f6e4); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .btn-premium { 
-            background: linear-gradient(135deg, #27272a 0%, #18181b 100%); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            transition: all 0.3s ease; 
-        }
-        .btn-premium:active { transform: scale(0.98); }
-        
-        .btn-action { 
-            background: linear-gradient(to right, #d8b4fe, #818cf8); 
-            color: #000; 
-            font-weight: 600;
-            transition: opacity 0.3s;
-        }
+        .glass { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
+        .btn-action { background: linear-gradient(to right, #d8b4fe, #818cf8); color: #000; font-weight: 600; transition: opacity 0.3s; }
         .btn-action:hover { opacity: 0.9; }
-
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* Custom Checkbox */
-        .toggle-checkbox:checked { right: 0; border-color: #34d399; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #34d399; }
+        /* Custom Switch */
+        .switch-checkbox { display: none; }
+        .switch-label { 
+            position: relative; display: block; width: 40px; height: 22px; 
+            background-color: #27272a; border-radius: 9999px; cursor: pointer; transition: 0.3s; 
+        }
+        .switch-label::after {
+            content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+            background-color: #fff; border-radius: 50%; transition: 0.3s;
+        }
+        .switch-checkbox:checked + .switch-label { background-color: #34d399; }
+        .switch-checkbox:checked + .switch-label::after { transform: translateX(18px); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -96,7 +75,7 @@
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
             return (
-                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : 'border-danger/30 text-danger'}`}>
+                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : type === 'warning' ? 'border-warning/30 text-warning' : 'border-danger/30 text-danger'}`}>
                     <span className="text-lg">{type === 'success' ? '✓' : '⚠'}</span>
                     <span className="font-medium text-sm text-zinc-100">{message}</span>
                 </div>
@@ -113,7 +92,7 @@
                         <div className="text-zinc-400 text-sm mb-8 leading-relaxed text-center">{children}</div>
                         <div className="flex gap-3">
                             {showCancel && <button onClick={onCancel} className="flex-1 py-3 rounded-2xl text-sm font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-colors">Cancel</button>}
-                            <button onClick={onConfirm} className={`flex-1 py-3 rounded-2xl text-sm font-bold shadow-lg transition-transform active:scale-95 ${isDanger ? 'bg-zinc-900 border border-danger/50 text-danger' : 'bg-white text-black hover:bg-zinc-200'}`}>{confirmText}</button>
+                            <button onClick={onConfirm} className={`flex-1 py-3 rounded-2xl text-sm font-bold shadow-lg transition-transform active:scale-95 ${isDanger ? 'bg-zinc-900 border border-danger/50 text-danger hover:bg-danger/10' : 'bg-white text-black hover:bg-zinc-200'}`}>{confirmText}</button>
                         </div>
                     </div>
                 </div>
@@ -131,59 +110,39 @@
             );
         };
 
-        // --- CHART COMPONENT (Clean & Minimal) ---
+        // --- CHART COMPONENT ---
         const SavingsChart = ({ history, currentSavings, weeksPassed }) => {
             const canvasRef = useRef(null);
-            
             useEffect(() => {
                 if(!canvasRef.current) return;
                 const ctx = canvasRef.current.getContext('2d');
-                
                 const labels = Array.from({length: weeksPassed + 1}, (_, i) => `W${i}`);
-                let runningTotal = 0;
-                const dataPoints = [0]; 
-                
+                let runningTotal = 0; const dataPoints = [0]; 
                 history.slice().sort((a,b) => a.week - b.week).forEach(h => {
-                    runningTotal += h.savedExtra;
-                    runningTotal += 1275; 
+                    runningTotal += h.savedExtra; runningTotal += 1275; 
                     dataPoints.push(runningTotal);
                 });
-
                 if (dataPoints.length <= weeksPassed) dataPoints.push(currentSavings);
 
-                // Create Gradient
                 let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(216, 180, 254, 0.2)'); // Premium Purple
-                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                gradient.addColorStop(0, 'rgba(216, 180, 254, 0.2)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
                 const chart = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Savings',
-                            data: dataPoints,
-                            borderColor: '#d8b4fe',
-                            borderWidth: 2,
-                            backgroundColor: gradient,
-                            tension: 0.4,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            fill: true
+                            label: 'Savings', data: dataPoints, borderColor: '#d8b4fe', borderWidth: 2, backgroundColor: gradient, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, fill: true
                         }]
                     },
                     options: {
                         responsive: true,
                         plugins: { legend: { display: false }, tooltip: { backgroundColor: '#18181b', titleColor: '#fff', bodyColor: '#a1a1aa', borderColor: '#27272a', borderWidth: 1, padding: 10 } },
-                        scales: {
-                            y: { grid: { color: '#27272a' }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} },
-                            x: { grid: { display: false }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} }
-                        }
+                        scales: { y: { grid: { color: '#27272a' }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} }, x: { grid: { display: false }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} } }
                     }
                 });
                 return () => chart.destroy();
             }, [history, currentSavings, weeksPassed]);
-
             return <canvas ref={canvasRef} height="200"></canvas>;
         };
 
@@ -195,28 +154,18 @@
                 return savedConfig ? { ...defaults, ...JSON.parse(savedConfig) } : defaults;
             });
 
-            const [isChartCollapsed, setIsChartCollapsed] = useState(() => {
-                const savedState = localStorage.getItem('savings_chart_collapsed');
-                return savedState === 'true';
-            });
-
+            const [isChartCollapsed, setIsChartCollapsed] = useState(() => localStorage.getItem('savings_chart_collapsed') === 'true');
             const [isLoading, setIsLoading] = useState(true);
-            const [saveStatus, setSaveStatus] = useState('saved'); 
             const [viewWeek, setViewWeek] = useState(1);
             
             const [data, setData] = useState({
-                currentWeek: 1,
-                totalUnplanned: 0,
-                history: [],
-                unplannedHistory: [],
-                days: [
-                    { id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false },
-                    { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }
-                ]
+                currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
+                days: [ { id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false } ]
             });
 
             const [spendModalOpen, setSpendModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
+            const [resetModalOpen, setResetModalOpen] = useState(null); // 'week' or 'all'
             const [spendAmount, setSpendAmount] = useState('');
             const [spendReason, setSpendReason] = useState('');
             const [tempConfig, setTempConfig] = useState(config);
@@ -227,17 +176,9 @@
             useEffect(() => {
                 const load = async () => {
                     const localData = localStorage.getItem('savings_tracker_pro');
-                    if (localData) {
-                        const parsed = JSON.parse(localData);
-                        setData(parsed);
-                        setViewWeek(parsed.currentWeek);
-                    }
+                    if (localData) { const parsed = JSON.parse(localData); setData(parsed); setViewWeek(parsed.currentWeek); }
                     if(!API_URL.includes("PASTE_YOUR")) {
-                        try {
-                            const response = await fetch(API_URL);
-                            const cloudData = await response.json();
-                            if (cloudData) setData(prev => ({ ...prev, ...cloudData })); 
-                        } catch (e) { console.log("Offline mode"); }
+                        try { const response = await fetch(API_URL); const cloudData = await response.json(); if (cloudData) setData(prev => ({ ...prev, ...cloudData })); } catch (e) { console.log("Offline"); }
                     }
                     setIsLoading(false);
                 };
@@ -248,17 +189,11 @@
             const isFirstRender = useRef(true);
             useEffect(() => {
                 if (isFirstRender.current) { isFirstRender.current = false; return; }
-                setSaveStatus('unsaved');
                 localStorage.setItem('savings_tracker_pro', JSON.stringify(data));
                 localStorage.setItem('savings_config', JSON.stringify(config));
                 localStorage.setItem('savings_chart_collapsed', isChartCollapsed);
-                
                 const timeoutId = setTimeout(async () => {
-                    setSaveStatus('saving');
-                    if(!API_URL.includes("PASTE_YOUR")) {
-                        try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } catch (e) {}
-                    }
-                    setTimeout(() => setSaveStatus('saved'), 500); 
+                    if(!API_URL.includes("PASTE_YOUR")) { try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } catch (e) {} }
                 }, 1000);
                 return () => clearTimeout(timeoutId);
             }, [data, config, isChartCollapsed]);
@@ -274,8 +209,7 @@
                     if (pastWeek && pastWeek.days) daysToCalc = pastWeek.days;
                 }
 
-                let spentThisWeek = 0;
-                let lockedWeeklySavings = 0;
+                let spentThisWeek = 0; let lockedWeeklySavings = 0;
                 daysToCalc.forEach(d => {
                     const dailyTotal = (parseFloat(d.food)||0) + (parseFloat(d.commute)||0);
                     if(d.isDone) {
@@ -287,7 +221,6 @@
                 const remaining = config.weeklyAllowance - spentThisWeek - lockedWeeklySavings;
                 const weeksPassed = data.currentWeek - 1;
                 const weeklyBaseSavings = (64000 - (config.weeklyAllowance * config.semesterWeeks)) / config.semesterWeeks; 
-                
                 const currentSavings = (weeksPassed * weeklyBaseSavings) + totalSavedExtra - data.totalUnplanned;
                 const projectedTotal = config.baseGoal + totalSavedExtra + lockedWeeklySavings - data.totalUnplanned;
 
@@ -296,13 +229,8 @@
 
             // --- ACTIONS ---
             const updateDay = (id, updates) => {
-                if (viewWeek === data.currentWeek) {
-                    setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
-                } else {
-                    setData(prev => ({
-                        ...prev, history: prev.history.map(h => h.week === viewWeek ? { ...h, days: h.days.map(d => d.id === id ? { ...d, ...updates } : d) } : h)
-                    }));
-                }
+                if (viewWeek === data.currentWeek) setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
+                else setData(prev => ({ ...prev, history: prev.history.map(h => h.week === viewWeek ? { ...h, days: h.days.map(d => d.id === id ? { ...d, ...updates } : d) } : h) }));
             };
 
             const finishWeek = () => {
@@ -312,17 +240,32 @@
                     title: `Finish Week ${data.currentWeek}?`,
                     children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p><p className="text-zinc-500 mb-1">Total Saved</p><p className="text-2xl font-bold text-success">₱{Math.floor(extraSavings)}</p></div>,
                     onConfirm: () => {
-                        setData(prev => ({
-                            ...prev, currentWeek: prev.currentWeek + 1,
-                            history: [...prev.history, newHistoryItem],
-                            days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }))
-                        }));
-                        setViewWeek(prev => prev + 1);
-                        setModal(null);
-                        setToast({ message: "Week saved successfully", type: "success" });
+                        setData(prev => ({ ...prev, currentWeek: prev.currentWeek + 1, history: [...prev.history, newHistoryItem], days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false })) }));
+                        setViewWeek(prev => prev + 1); setModal(null); setToast({ message: "Week saved", type: "success" });
                     },
                     onCancel: () => setModal(null)
                 });
+            };
+
+            const handleResetWeek = () => {
+                setData(prev => ({
+                    ...prev,
+                    days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false }))
+                }));
+                setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Current week reset", type: "success" });
+            };
+
+            const handleResetAll = async () => {
+                const emptyData = {
+                    currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
+                    days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false }]
+                };
+                setToast({ message: "Wiping Cloud Database...", type: "warning" });
+                if(!API_URL.includes("PASTE_YOUR")) {
+                    try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) { console.error(e); }
+                }
+                localStorage.removeItem('savings_tracker_pro');
+                setTimeout(() => window.location.reload(), 1500);
             };
 
             const saveSettings = () => {
@@ -333,13 +276,11 @@
 
             let daysToRender = viewWeek === data.currentWeek ? data.days : (data.history.find(h => h.week === viewWeek)?.days || []);
             if (viewWeek < data.currentWeek && daysToRender.length === 0) daysToRender = [{id:1},{id:2}]; 
-
             let runningCarryOver = 0;
             const daysWithBudgets = daysToRender.map(day => {
                 const budgetForToday = config.dailyLimit + runningCarryOver;
                 const spentToday = (parseFloat(day.food)||0) + (parseFloat(day.commute)||0);
-                if (day.isDone && day.carryOver) runningCarryOver = Math.max(0, budgetForToday - spentToday);
-                else runningCarryOver = 0;
+                if (day.isDone && day.carryOver) runningCarryOver = Math.max(0, budgetForToday - spentToday); else runningCarryOver = 0;
                 return { ...day, budgetAvailable: budgetForToday };
             });
 
@@ -352,104 +293,78 @@
                     <div className="flex justify-between items-center pt-2">
                          <div className="flex items-center gap-4">
                             <img src="logo.png" alt="Logo" className="w-11 h-11 rounded-2xl shadow-2xl border border-white/5" />
-                            <div>
-                                <h1 className="text-2xl font-bold text-white tracking-tight">Saver<span className="text-zinc-500">Pro</span></h1>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{data.currentWeek > config.semesterWeeks ? `Overtime` : "Semester Goal"}</p>
-                            </div>
+                            <div><h1 className="text-2xl font-bold text-white tracking-tight">Saver<span className="text-zinc-500">Pro</span></h1><p className="text-[10px] text-zinc-500 uppercase tracking-widest">Semester Goal</p></div>
                          </div>
-                         <button onClick={() => { setTempConfig(config); setSettingsOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                         </button>
+                         <button onClick={() => { setTempConfig(config); setSettingsOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors">⚙️</button>
                     </div>
 
-                    {/* Chart Section */}
+                    {/* Chart */}
                     {config.enableChart && (
                         <div className="glass rounded-3xl overflow-hidden transition-all duration-300">
                             <div onClick={() => setIsChartCollapsed(!isChartCollapsed)} className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/5 active:bg-white/10 transition-colors">
                                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Analytics</span>
                                 <span className={`transform transition-transform duration-300 text-zinc-600 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
                             </div>
-                            {!isChartCollapsed && (
-                                <div className="px-4 pb-4">
-                                    <SavingsChart history={data.history} currentSavings={stats.currentSavings} weeksPassed={stats.weeksPassed} />
-                                </div>
-                            )}
+                            {!isChartCollapsed && (<div className="px-4 pb-4"><SavingsChart history={data.history} currentSavings={stats.currentSavings} weeksPassed={stats.weeksPassed} /></div>)}
                         </div>
                     )}
 
-                    {/* Stats Cards */}
+                    {/* Stats */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💎</span></div>
-                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Current</p>
-                            <p className="text-2xl font-bold text-white tracking-tight">₱{Math.floor(stats.currentSavings).toLocaleString()}</p>
-                        </div>
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🚀</span></div>
-                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Projected</p>
-                            <p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>
-                        </div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💎</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Current</p><p className="text-2xl font-bold text-white tracking-tight">₱{Math.floor(stats.currentSavings).toLocaleString()}</p></div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🚀</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Projected</p><p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p></div>
                     </div>
 
-                    {/* Main Tracker */}
+                    {/* Tracker */}
                     <div className="glass rounded-3xl p-1 relative">
                          <div className="flex justify-between items-center p-4 border-b border-zinc-800/50">
                             <button onClick={() => setViewWeek(prev => Math.max(1, prev - 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === 1 ? 'opacity-20' : ''}`} disabled={viewWeek === 1}>←</button>
-                            <div className="text-center">
-                                <h2 className="font-bold text-lg text-white tracking-tight">Week {viewWeek}</h2>
-                                {viewWeek === data.currentWeek ? 
-                                    <p className="text-xs text-zinc-500 mt-0.5">Pool: <span className="text-white font-mono">₱{stats.remaining}</span></p> : 
-                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">HISTORY VIEW</span>
-                                }
-                            </div>
+                            <div className="text-center"><h2 className="font-bold text-lg text-white tracking-tight">Week {viewWeek}</h2>{viewWeek === data.currentWeek ? <p className="text-xs text-zinc-500 mt-0.5">Pool: <span className="text-white font-mono">₱{stats.remaining}</span></p> : <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">HISTORY VIEW</span>}</div>
                             <button onClick={() => setViewWeek(prev => Math.min(data.currentWeek, prev + 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === data.currentWeek ? 'opacity-20' : ''}`} disabled={viewWeek === data.currentWeek}>→</button>
                          </div>
 
                          <div className="p-4 space-y-4">
-                            {daysWithBudgets.map((day, idx) => {
-                                return (
-                                    <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div>
-                                                <span className="text-sm font-bold text-zinc-200 block tracking-tight">{idx === 0 ? 'Wednesday' : 'Thursday'}</span>
-                                                <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span>
-                                            </div>
-                                            <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
-                                            <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
-                                        </div>
+                            {daysWithBudgets.map((day, idx) => (
+                                <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div><span className="text-sm font-bold text-zinc-200 block tracking-tight">{idx === 0 ? 'Wednesday' : 'Thursday'}</span><span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span></div>
+                                        <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
                                     </div>
-                                );
-                            })}
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
+                                        <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
+                                    </div>
+                                    
+                                    <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
+                                        <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry surplus to next day" : "Lock surplus as savings"}</span>
+                                        <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                    </div>
+                                </div>
+                            ))}
                          </div>
-                         
                          {viewWeek === data.currentWeek && (
-                            <div className="p-4 pt-0">
-                                <button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button>
-                            </div>
+                            <div className="p-4 pt-0"><button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button></div>
                          )}
                     </div>
 
-                    {/* Footer Action */}
                     <div className="text-center pb-8">
-                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-danger border border-danger/20 px-5 py-2.5 rounded-full hover:bg-danger/10 transition-colors inline-flex items-center gap-2">
-                            <span>💸</span> Record Unplanned Spend
-                        </button>
+                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-danger border border-danger/20 px-5 py-2.5 rounded-full hover:bg-danger/10 transition-colors inline-flex items-center gap-2"><span>💸</span> Record Unplanned Spend</button>
                     </div>
 
                     {/* SETTINGS MODAL */}
                     <Modal isOpen={settingsOpen} title="Settings" confirmText="Save" onConfirm={saveSettings} onCancel={() => setSettingsOpen(false)}>
                         <div className="space-y-4">
-                            <div><label className="text-xs text-zinc-500 block mb-1">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none transition-colors" /></div>
-                            <div><label className="text-xs text-zinc-500 block mb-1">Weekly Allowance (₱)</label><input type="number" value={tempConfig.weeklyAllowance} onChange={(e) => setTempConfig({...tempConfig, weeklyAllowance: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none transition-colors" /></div>
-                            
+                            <div><label className="text-xs text-zinc-500 block mb-1">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none" /></div>
+                            <div><label className="text-xs text-zinc-500 block mb-1">Weekly Allowance (₱)</label><input type="number" value={tempConfig.weeklyAllowance} onChange={(e) => setTempConfig({...tempConfig, weeklyAllowance: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none" /></div>
                             <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
                                 <label className="text-sm text-zinc-300">Show Chart</label>
-                                <div className="relative inline-block w-12 align-middle select-none">
-                                    <input type="checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 left-0" style={{top: '0', borderColor: tempConfig.enableChart ? '#34d399' : '#52525b', right: tempConfig.enableChart ? '0' : 'auto', left: tempConfig.enableChart ? 'auto' : '0'}}/>
-                                    <label onClick={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${tempConfig.enableChart ? 'bg-success' : 'bg-zinc-700'}`}></label>
+                                <div><input type="checkbox" id="chart-switch" className="switch-checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} /><label htmlFor="chart-switch" className="switch-label"></label></div>
+                            </div>
+                            <div className="pt-6 mt-6 border-t border-zinc-800">
+                                <p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-3 font-bold">Data Management</p>
+                                <div className="space-y-3">
+                                    <button onClick={() => setResetModalOpen('week')} className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-800">Reset Current Week Inputs</button>
+                                    <button onClick={() => setResetModalOpen('all')} className="w-full py-3 rounded-xl border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10">Start from Scratch (Reset All)</button>
                                 </div>
                             </div>
                         </div>
@@ -458,17 +373,17 @@
                     {/* SPEND MODAL */}
                     <Modal isOpen={spendModalOpen} title="Unplanned Spending" confirmText="Record" isDanger={true} onConfirm={() => {
                         const amount = parseFloat(spendAmount);
-                        if(amount > 0) {
-                             setData(prev => ({ ...prev, totalUnplanned: prev.totalUnplanned + amount, unplannedHistory: [{ id: Date.now(), week: prev.currentWeek, amount, reason: spendReason }, ...prev.unplannedHistory] }));
-                             setToast({ message: `recorded -₱${amount}`, type: "success" });
-                             setSpendModalOpen(false); setSpendAmount(''); setSpendReason('');
-                        }
+                        if(amount > 0) { setData(prev => ({ ...prev, totalUnplanned: prev.totalUnplanned + amount, unplannedHistory: [{ id: Date.now(), week: prev.currentWeek, amount, reason: spendReason }, ...prev.unplannedHistory] })); setToast({ message: "Recorded", type: "success" }); setSpendModalOpen(false); setSpendAmount(''); setSpendReason(''); }
                     }} onCancel={() => setSpendModalOpen(false)}>
                         <div className="space-y-4">
                             <input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-danger outline-none" placeholder="Amount (₱)" />
                             <input type="text" value={spendReason} onChange={(e) => setSpendReason(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-danger outline-none" placeholder="Reason (e.g., Coffee, Gift)" />
                         </div>
                     </Modal>
+
+                    {/* RESET MODALS */}
+                    {resetModalOpen === 'week' && ( <Modal isOpen={true} title="Reset Week?" confirmText="Yes, Reset" onConfirm={handleResetWeek} onCancel={() => setResetModalOpen(null)}>Are you sure? This clears inputs for the current week.</Modal> )}
+                    {resetModalOpen === 'all' && ( <Modal isOpen={true} title="Delete Everything?" confirmText="Yes, Delete All" isDanger={true} onConfirm={handleResetAll} onCancel={() => setResetModalOpen(null)}>This will wipe all data, history, and cloud settings permanently.</Modal> )}
 
                     <Modal isOpen={!!modal} title={modal?.title} onConfirm={modal?.onConfirm} onCancel={modal?.onCancel}>{modal?.children}</Modal>
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
