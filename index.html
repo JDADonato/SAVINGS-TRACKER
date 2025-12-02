@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Savings Tracker Pro</title>
-    <meta name="theme-color" content="#0f172a">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Saver Pro | AMOLED</title>
+    <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -21,9 +22,14 @@
             theme: {
                 extend: {
                     colors: {
-                        dark: '#0f172a', card: '#1e293b', primary: '#f472b6',
-                        secondary: '#a78bfa', accent: '#22d3ee', success: '#34d399',
-                        danger: '#fb7185', warning: '#fbbf24', gold: '#fbbf24', text: '#f1f5f9'
+                        black: '#000000',
+                        zinc: { 850: '#27272a', 900: '#18181b', 950: '#09090b' },
+                        primary: '#d8b4fe',   // Muted Premium Purple
+                        secondary: '#818cf8', // Indigo
+                        accent: '#2dd4bf',    // Teal
+                        success: '#34d399',
+                        danger: '#fb7185',
+                        warning: '#fbbf24',
                     },
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     animation: { 'slide-up': 'slideUp 0.3s ease-out', 'fade-in': 'fadeIn 0.2s ease-out' },
@@ -36,14 +42,42 @@
         }
     </script>
     <style>
-        body { background-color: #0f172a; color: #f1f5f9; user-select: none; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .btn-grad { background-image: linear-gradient(to right, #f472b6 0%, #a78bfa 51%, #f472b6 100%); transition: 0.5s; background-size: 200% auto; }
-        .btn-grad:hover { background-position: right center; }
-        .btn-gold { background-image: linear-gradient(to right, #f59e0b 0%, #fbbf24 51%, #f59e0b 100%); color: #000; transition: 0.5s; background-size: 200% auto; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body { background-color: #000000; color: #f4f4f5; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* AMOLED Glass: Darker, reduced transparency, subtle border */
+        .glass { 
+            background: rgba(24, 24, 27, 0.6); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Premium Gradients */
+        .text-gradient { background: linear-gradient(to right, #e9d5ff, #c4b5fd, #99f6e4); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .btn-premium { 
+            background: linear-gradient(135deg, #27272a 0%, #18181b 100%); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            transition: all 0.3s ease; 
+        }
+        .btn-premium:active { transform: scale(0.98); }
+        
+        .btn-action { 
+            background: linear-gradient(to right, #d8b4fe, #818cf8); 
+            color: #000; 
+            font-weight: 600;
+            transition: opacity 0.3s;
+        }
+        .btn-action:hover { opacity: 0.9; }
+
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        
+        /* Custom Checkbox */
+        .toggle-checkbox:checked { right: 0; border-color: #34d399; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #34d399; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -62,9 +96,9 @@
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
             return (
-                <div className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/50 text-success' : 'border-danger/50 text-danger'}`}>
+                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : 'border-danger/30 text-danger'}`}>
                     <span className="text-lg">{type === 'success' ? '✓' : '⚠'}</span>
-                    <span className="font-medium text-sm text-white">{message}</span>
+                    <span className="font-medium text-sm text-zinc-100">{message}</span>
                 </div>
             );
         };
@@ -73,13 +107,13 @@
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onCancel}></div>
-                    <div className="glass relative z-50 w-full max-w-sm p-6 rounded-2xl shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-                        <h3 className="text-xl font-bold text-white mb-4 text-center">{title}</h3>
-                        <div className="text-gray-300 text-sm mb-6">{children}</div>
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onCancel}></div>
+                    <div className="glass relative z-50 w-full max-w-sm p-6 rounded-3xl shadow-2xl border border-zinc-800 max-h-[90vh] overflow-y-auto">
+                        <h3 className="text-xl font-bold text-white mb-4 text-center tracking-tight">{title}</h3>
+                        <div className="text-zinc-400 text-sm mb-8 leading-relaxed text-center">{children}</div>
                         <div className="flex gap-3">
-                            {showCancel && <button onClick={onCancel} className="flex-1 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/5">Cancel</button>}
-                            <button onClick={onConfirm} className={`flex-1 py-2 rounded-xl text-sm font-bold text-white shadow-lg hover:opacity-90 ${isDanger ? 'bg-red-500' : 'bg-gradient-to-r from-primary to-secondary'}`}>{confirmText}</button>
+                            {showCancel && <button onClick={onCancel} className="flex-1 py-3 rounded-2xl text-sm font-medium text-zinc-400 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-colors">Cancel</button>}
+                            <button onClick={onConfirm} className={`flex-1 py-3 rounded-2xl text-sm font-bold shadow-lg transition-transform active:scale-95 ${isDanger ? 'bg-zinc-900 border border-danger/50 text-danger' : 'bg-white text-black hover:bg-zinc-200'}`}>{confirmText}</button>
                         </div>
                     </div>
                 </div>
@@ -89,15 +123,15 @@
         const NumberInput = ({ value, onChange, placeholder, disabled }) => {
             const update = (val) => { const num = parseFloat(val) || 0; if (num < 0) return; onChange(num); };
             return (
-                <div className={`relative flex items-center w-full border rounded-lg group transition-colors ${disabled ? 'bg-gray-800 border-gray-700 opacity-50 cursor-not-allowed' : 'bg-dark/50 border-gray-600 focus-within:border-accent'}`}>
-                    <button disabled={disabled} onClick={() => update(parseFloat(value||0) - 5)} className="px-3 text-gray-400 hover:text-white font-bold border-r border-gray-700 py-2 disabled:cursor-not-allowed">-</button>
-                    <input disabled={disabled} type="number" value={value} placeholder={placeholder} onChange={(e) => update(e.target.value)} className="w-full bg-transparent text-center text-sm py-2 text-white outline-none appearance-none disabled:cursor-not-allowed"/>
-                    <button disabled={disabled} onClick={() => update(parseFloat(value||0) + 5)} className="px-3 text-gray-400 hover:text-white font-bold border-l border-gray-700 py-2 disabled:cursor-not-allowed">+</button>
+                <div className={`relative flex items-center w-full border rounded-xl transition-colors ${disabled ? 'bg-zinc-900 border-zinc-800 opacity-50 cursor-not-allowed' : 'bg-black/40 border-zinc-800 focus-within:border-zinc-600'}`}>
+                    <button disabled={disabled} onClick={() => update(parseFloat(value||0) - 5)} className="px-4 text-zinc-500 hover:text-white font-medium border-r border-zinc-800 py-3 disabled:cursor-not-allowed transition-colors">–</button>
+                    <input disabled={disabled} type="number" value={value} placeholder={placeholder} onChange={(e) => update(e.target.value)} className="w-full bg-transparent text-center text-sm py-2 text-white outline-none appearance-none disabled:cursor-not-allowed font-mono"/>
+                    <button disabled={disabled} onClick={() => update(parseFloat(value||0) + 5)} className="px-4 text-zinc-500 hover:text-white font-medium border-l border-zinc-800 py-3 disabled:cursor-not-allowed transition-colors">+</button>
                 </div>
             );
         };
 
-        // --- CHART COMPONENT ---
+        // --- CHART COMPONENT (Clean & Minimal) ---
         const SavingsChart = ({ history, currentSavings, weeksPassed }) => {
             const canvasRef = useRef(null);
             
@@ -105,72 +139,65 @@
                 if(!canvasRef.current) return;
                 const ctx = canvasRef.current.getContext('2d');
                 
-                // Prepare Data
                 const labels = Array.from({length: weeksPassed + 1}, (_, i) => `W${i}`);
-                // Accumulate savings from history
                 let runningTotal = 0;
-                const dataPoints = [0]; // Start at 0
+                const dataPoints = [0]; 
                 
                 history.slice().sort((a,b) => a.week - b.week).forEach(h => {
-                    runningTotal += h.savedExtra; // Add daily savings
-                    // Add base savings (approx 1275 per week)
+                    runningTotal += h.savedExtra;
                     runningTotal += 1275; 
                     dataPoints.push(runningTotal);
                 });
 
-                // Add current week (if not finished)
                 if (dataPoints.length <= weeksPassed) dataPoints.push(currentSavings);
+
+                // Create Gradient
+                let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(216, 180, 254, 0.2)'); // Premium Purple
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
                 const chart = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Total Savings',
+                            label: 'Savings',
                             data: dataPoints,
-                            borderColor: '#a78bfa',
-                            backgroundColor: 'rgba(167, 139, 250, 0.2)',
+                            borderColor: '#d8b4fe',
+                            borderWidth: 2,
+                            backgroundColor: gradient,
                             tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
                             fill: true
                         }]
                     },
                     options: {
                         responsive: true,
-                        plugins: { legend: { display: false } },
+                        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#18181b', titleColor: '#fff', bodyColor: '#a1a1aa', borderColor: '#27272a', borderWidth: 1, padding: 10 } },
                         scales: {
-                            y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
-                            x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                            y: { grid: { color: '#27272a' }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} },
+                            x: { grid: { display: false }, ticks: { color: '#52525b', font: {size: 10} }, border: {display: false} }
                         }
                     }
                 });
                 return () => chart.destroy();
             }, [history, currentSavings, weeksPassed]);
 
-            return <canvas ref={canvasRef}></canvas>;
+            return <canvas ref={canvasRef} height="200"></canvas>;
         };
 
         // --- MAIN APP ---
         const App = () => {
-            // SETTINGS STATE
             const [config, setConfig] = useState(() => {
                 const savedConfig = localStorage.getItem('savings_config');
-                // Default Config + merge for new keys (enableChart)
-                const defaults = {
-                    dailyLimit: 335,
-                    weeklyAllowance: 670,
-                    semesterWeeks: 33,
-                    baseGoal: 42081,
-                    commuteCost: 155,
-                    startDate: '2025-12-01',
-                    enableChart: true
-                };
+                const defaults = { dailyLimit: 335, weeklyAllowance: 670, semesterWeeks: 33, baseGoal: 42081, commuteCost: 155, startDate: '2025-12-01', enableChart: true };
                 return savedConfig ? { ...defaults, ...JSON.parse(savedConfig) } : defaults;
             });
 
-            // CHART COLLAPSE STATE
             const [isChartCollapsed, setIsChartCollapsed] = useState(() => {
                 const savedState = localStorage.getItem('savings_chart_collapsed');
-                return savedState === 'true'; // Default false (expanded)
+                return savedState === 'true';
             });
 
             const [isLoading, setIsLoading] = useState(true);
@@ -193,7 +220,6 @@
             const [spendAmount, setSpendAmount] = useState('');
             const [spendReason, setSpendReason] = useState('');
             const [tempConfig, setTempConfig] = useState(config);
-
             const [toast, setToast] = useState(null);
             const [modal, setModal] = useState(null);
 
@@ -284,7 +310,7 @@
                 const newHistoryItem = { week: data.currentWeek, spent: stats.spentThisWeek, savedExtra: extraSavings, date: new Date().toLocaleDateString(), days: data.days };
                 setModal({
                     title: `Finish Week ${data.currentWeek}?`,
-                    children: <p>Spent: ₱{stats.spentThisWeek}<br/>Saved: ₱{Math.floor(extraSavings)}</p>,
+                    children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p><p className="text-zinc-500 mb-1">Total Saved</p><p className="text-2xl font-bold text-success">₱{Math.floor(extraSavings)}</p></div>,
                     onConfirm: () => {
                         setData(prev => ({
                             ...prev, currentWeek: prev.currentWeek + 1,
@@ -293,7 +319,7 @@
                         }));
                         setViewWeek(prev => prev + 1);
                         setModal(null);
-                        setToast({ message: "Week saved!", type: "success" });
+                        setToast({ message: "Week saved successfully", type: "success" });
                     },
                     onCancel: () => setModal(null)
                 });
@@ -302,10 +328,9 @@
             const saveSettings = () => {
                 setConfig(tempConfig);
                 setSettingsOpen(false);
-                setToast({ message: "Settings Updated", type: "success" });
+                setToast({ message: "Preferences updated", type: "success" });
             };
 
-            // Dynamic Budgets for View
             let daysToRender = viewWeek === data.currentWeek ? data.days : (data.history.find(h => h.week === viewWeek)?.days || []);
             if (viewWeek < data.currentWeek && daysToRender.length === 0) daysToRender = [{id:1},{id:2}]; 
 
@@ -318,73 +343,82 @@
                 return { ...day, budgetAvailable: budgetForToday };
             });
 
-            if (isLoading) return <div className="min-h-screen flex items-center justify-center text-white animate-pulse">Loading App...</div>;
+            if (isLoading) return <div className="min-h-screen flex items-center justify-center text-zinc-600 animate-pulse tracking-widest text-xs uppercase">Loading...</div>;
 
             return (
-                <div className="w-full max-w-md space-y-6 pb-24 relative">
+                <div className="w-full max-w-md space-y-8 pb-24 relative">
+                    
                     {/* Header */}
-                    <div className="flex justify-between items-start">
-                        <div className="w-8"></div>
-                        <div className="text-center">
-                            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Saver Pro</h1>
-                            <p className="text-xs text-gray-500">{data.currentWeek > config.semesterWeeks ? `Overtime` : "Semester Goal"}</p>
-                        </div>
-                        <button onClick={() => { setTempConfig(config); setSettingsOpen(true); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400">⚙️</button>
+                    <div className="flex justify-between items-center pt-2">
+                         <div className="flex items-center gap-4">
+                            <img src="logo.png" alt="Logo" className="w-11 h-11 rounded-2xl shadow-2xl border border-white/5" />
+                            <div>
+                                <h1 className="text-2xl font-bold text-white tracking-tight">Saver<span className="text-zinc-500">Pro</span></h1>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{data.currentWeek > config.semesterWeeks ? `Overtime` : "Semester Goal"}</p>
+                            </div>
+                         </div>
+                         <button onClick={() => { setTempConfig(config); setSettingsOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                         </button>
                     </div>
 
-                    {/* CHART SECTION (Collapsible) */}
+                    {/* Chart Section */}
                     {config.enableChart && (
-                        <div className="glass rounded-2xl mb-4 transition-all duration-300 overflow-hidden">
-                            <div onClick={() => setIsChartCollapsed(!isChartCollapsed)} className="p-4 flex justify-between items-center cursor-pointer bg-white/5 hover:bg-white/10 active:bg-white/20">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Savings Trend</span>
-                                <span className={`transform transition-transform duration-300 text-gray-400 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
+                        <div className="glass rounded-3xl overflow-hidden transition-all duration-300">
+                            <div onClick={() => setIsChartCollapsed(!isChartCollapsed)} className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/5 active:bg-white/10 transition-colors">
+                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Analytics</span>
+                                <span className={`transform transition-transform duration-300 text-zinc-600 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
                             </div>
                             {!isChartCollapsed && (
-                                <div className="p-4 pt-0">
+                                <div className="px-4 pb-4">
                                     <SavingsChart history={data.history} currentSavings={stats.currentSavings} weeksPassed={stats.weeksPassed} />
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* Stats Grid */}
+                    {/* Stats Cards */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="glass p-4 rounded-2xl border-l-4 border-success">
-                            <p className="text-gray-400 text-[10px] uppercase font-bold">Current</p>
-                            <p className="text-2xl font-bold text-white mt-1">₱{Math.floor(stats.currentSavings).toLocaleString()}</p>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💎</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Current</p>
+                            <p className="text-2xl font-bold text-white tracking-tight">₱{Math.floor(stats.currentSavings).toLocaleString()}</p>
                         </div>
-                        <div className="glass p-4 rounded-2xl border-l-4 border-primary">
-                            <p className="text-gray-400 text-[10px] uppercase font-bold">Projected</p>
-                            <p className="text-2xl font-bold text-white mt-1">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🚀</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Projected</p>
+                            <p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>
                         </div>
                     </div>
 
-                    {/* Tracker Card */}
-                    <div className="glass rounded-2xl p-6 relative">
-                         <div className="flex justify-between items-center mb-4">
-                            <button onClick={() => setViewWeek(prev => Math.max(1, prev - 1))} className={`p-2 rounded-full hover:bg-white/10 ${viewWeek === 1 ? 'opacity-30' : ''}`} disabled={viewWeek === 1}>◀</button>
+                    {/* Main Tracker */}
+                    <div className="glass rounded-3xl p-1 relative">
+                         <div className="flex justify-between items-center p-4 border-b border-zinc-800/50">
+                            <button onClick={() => setViewWeek(prev => Math.max(1, prev - 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === 1 ? 'opacity-20' : ''}`} disabled={viewWeek === 1}>←</button>
                             <div className="text-center">
-                                <h2 className="font-bold text-lg text-secondary">Week {viewWeek}</h2>
-                                {viewWeek === data.currentWeek ? <p className="text-xs text-gray-400">Pool: <span className="text-white font-bold">₱{stats.remaining}</span></p> : <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-2 rounded">HISTORY</span>}
+                                <h2 className="font-bold text-lg text-white tracking-tight">Week {viewWeek}</h2>
+                                {viewWeek === data.currentWeek ? 
+                                    <p className="text-xs text-zinc-500 mt-0.5">Pool: <span className="text-white font-mono">₱{stats.remaining}</span></p> : 
+                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">HISTORY VIEW</span>
+                                }
                             </div>
-                            <button onClick={() => setViewWeek(prev => Math.min(data.currentWeek, prev + 1))} className={`p-2 rounded-full hover:bg-white/10 ${viewWeek === data.currentWeek ? 'opacity-30' : ''}`} disabled={viewWeek === data.currentWeek}>▶</button>
+                            <button onClick={() => setViewWeek(prev => Math.min(data.currentWeek, prev + 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === data.currentWeek ? 'opacity-20' : ''}`} disabled={viewWeek === data.currentWeek}>→</button>
                          </div>
 
-                         <div className="space-y-4 mb-6">
+                         <div className="p-4 space-y-4">
                             {daysWithBudgets.map((day, idx) => {
-                                const dailyTotal = (parseFloat(day.food)||0) + (parseFloat(day.commute)||0);
                                 return (
-                                    <div key={day.id || idx} className={`p-4 rounded-xl border transition-all ${day.isDone ? 'border-success/30 bg-success/5' : 'border-white/5 bg-black/20'}`}>
-                                        <div className="flex justify-between items-center mb-3">
+                                    <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
+                                        <div className="flex justify-between items-center mb-4">
                                             <div>
-                                                <span className="text-sm font-bold text-gray-200 block">{idx === 0 ? 'Wednesday' : 'Thursday'}</span>
-                                                <span className="text-[10px] text-gray-400">Budget: ₱{day.budgetAvailable}</span>
+                                                <span className="text-sm font-bold text-zinc-200 block tracking-tight">{idx === 0 ? 'Wednesday' : 'Thursday'}</span>
+                                                <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span>
                                             </div>
-                                            <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-3 py-1 font-bold rounded-full transition-all ${day.isDone ? 'bg-success text-dark' : 'bg-gray-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
+                                            <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3 mb-3">
-                                            <div><label className="text-[10px] text-gray-500 block mb-1">Commute</label><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
-                                            <div><label className="text-[10px] text-gray-500 block mb-1">Food</label><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
+                                            <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
                                         </div>
                                     </div>
                                 );
@@ -392,43 +426,47 @@
                          </div>
                          
                          {viewWeek === data.currentWeek && (
-                            <button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full btn-grad text-white font-bold py-3 rounded-xl shadow-lg transform hover:scale-[1.02] transition-transform disabled:opacity-50">Finish Week</button>
+                            <div className="p-4 pt-0">
+                                <button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button>
+                            </div>
                          )}
                     </div>
 
-                    <div className="text-center">
-                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-red-400 border border-red-500/30 px-4 py-2 rounded-full flex items-center gap-2 mx-auto hover:bg-red-500/10">💸 Log Unplanned Spend</button>
+                    {/* Footer Action */}
+                    <div className="text-center pb-8">
+                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-danger border border-danger/20 px-5 py-2.5 rounded-full hover:bg-danger/10 transition-colors inline-flex items-center gap-2">
+                            <span>💸</span> Record Unplanned Spend
+                        </button>
                     </div>
 
                     {/* SETTINGS MODAL */}
-                    <Modal isOpen={settingsOpen} title="App Settings" confirmText="Save Changes" onConfirm={saveSettings} onCancel={() => setSettingsOpen(false)}>
+                    <Modal isOpen={settingsOpen} title="Settings" confirmText="Save" onConfirm={saveSettings} onCancel={() => setSettingsOpen(false)}>
                         <div className="space-y-4">
-                            <div><label className="text-xs text-gray-400">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-dark border border-gray-600 rounded p-2 text-white" /></div>
-                            <div><label className="text-xs text-gray-400">Weekly Allowance (₱)</label><input type="number" value={tempConfig.weeklyAllowance} onChange={(e) => setTempConfig({...tempConfig, weeklyAllowance: parseInt(e.target.value)})} className="w-full bg-dark border border-gray-600 rounded p-2 text-white" /></div>
-                            <div><label className="text-xs text-gray-400">Standard Commute (₱)</label><input type="number" value={tempConfig.commuteCost} onChange={(e) => setTempConfig({...tempConfig, commuteCost: parseInt(e.target.value)})} className="w-full bg-dark border border-gray-600 rounded p-2 text-white" /></div>
+                            <div><label className="text-xs text-zinc-500 block mb-1">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none transition-colors" /></div>
+                            <div><label className="text-xs text-zinc-500 block mb-1">Weekly Allowance (₱)</label><input type="number" value={tempConfig.weeklyAllowance} onChange={(e) => setTempConfig({...tempConfig, weeklyAllowance: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none transition-colors" /></div>
                             
-                            {/* Show Chart Toggle */}
-                            <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                                <label className="text-sm text-gray-300">Show Savings Chart</label>
-                                <div className="relative inline-block w-10 align-middle select-none">
-                                    <input type="checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 left-0" style={{top: '2px', borderColor: tempConfig.enableChart ? '#68D391' : '#4b5563', right: tempConfig.enableChart ? '0' : 'auto', left: tempConfig.enableChart ? 'auto' : '0'}}/>
-                                    <label onClick={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${tempConfig.enableChart ? 'bg-success' : 'bg-gray-700'}`}></label>
+                            <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+                                <label className="text-sm text-zinc-300">Show Chart</label>
+                                <div className="relative inline-block w-12 align-middle select-none">
+                                    <input type="checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 left-0" style={{top: '0', borderColor: tempConfig.enableChart ? '#34d399' : '#52525b', right: tempConfig.enableChart ? '0' : 'auto', left: tempConfig.enableChart ? 'auto' : '0'}}/>
+                                    <label onClick={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${tempConfig.enableChart ? 'bg-success' : 'bg-zinc-700'}`}></label>
                                 </div>
                             </div>
                         </div>
                     </Modal>
 
-                    <Modal isOpen={spendModalOpen} title="Log Spending" confirmText="Log" isDanger={true} onConfirm={() => {
+                    {/* SPEND MODAL */}
+                    <Modal isOpen={spendModalOpen} title="Unplanned Spending" confirmText="Record" isDanger={true} onConfirm={() => {
                         const amount = parseFloat(spendAmount);
                         if(amount > 0) {
                              setData(prev => ({ ...prev, totalUnplanned: prev.totalUnplanned + amount, unplannedHistory: [{ id: Date.now(), week: prev.currentWeek, amount, reason: spendReason }, ...prev.unplannedHistory] }));
-                             setToast({ message: `Logged -₱${amount}`, type: "warning" });
+                             setToast({ message: `recorded -₱${amount}`, type: "success" });
                              setSpendModalOpen(false); setSpendAmount(''); setSpendReason('');
                         }
                     }} onCancel={() => setSpendModalOpen(false)}>
                         <div className="space-y-4">
-                            <input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} className="w-full bg-dark border border-gray-600 rounded p-2 text-white" placeholder="Amount (₱)" />
-                            <input type="text" value={spendReason} onChange={(e) => setSpendReason(e.target.value)} className="w-full bg-dark border border-gray-600 rounded p-2 text-white" placeholder="Reason" />
+                            <input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-danger outline-none" placeholder="Amount (₱)" />
+                            <input type="text" value={spendReason} onChange={(e) => setSpendReason(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-danger outline-none" placeholder="Reason (e.g., Coffee, Gift)" />
                         </div>
                     </Modal>
 
@@ -440,13 +478,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').catch(err => console.log('SW failed', err));
-            });
-        }
     </script>
 </body>
 </html>
