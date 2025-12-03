@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro</title>
+    <title>Saver Pro | Complete</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -70,6 +70,9 @@
         // 🔧 SETUP: PASTE YOUR URL HERE
         // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbxNWva9ujwZpl4bIfDDs6X2PAaOYASbabuBDUQwYCf6domAvcUa9QWQxAx-1WE0ibrTzA/exec"; 
+
+        // --- CONSTANTS ---
+        const SEMESTER_START_DATE = new Date('2025-12-01'); // Start date for date calc
 
         // --- COMPONENTS ---
         const Toast = ({ message, type, onClose }) => {
@@ -160,12 +163,12 @@
             
             const [data, setData] = useState({
                 currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
-                days: [ { id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false } ]
+                days: [ { id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false } ]
             });
 
             const [spendModalOpen, setSpendModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
-            const [resetModalOpen, setResetModalOpen] = useState(null); // 'week' or 'all'
+            const [resetModalOpen, setResetModalOpen] = useState(null); 
             const [spendAmount, setSpendAmount] = useState('');
             const [spendReason, setSpendReason] = useState('');
             const [tempConfig, setTempConfig] = useState(config);
@@ -176,9 +179,21 @@
             useEffect(() => {
                 const load = async () => {
                     const localData = localStorage.getItem('savings_tracker_pro');
-                    if (localData) { const parsed = JSON.parse(localData); setData(parsed); setViewWeek(parsed.currentWeek); }
+                    if (localData) { 
+                        const parsed = JSON.parse(localData); 
+                        setData(parsed); 
+                        setViewWeek(parsed.currentWeek); 
+                    }
                     if(!API_URL.includes("PASTE_YOUR")) {
-                        try { const response = await fetch(API_URL); const cloudData = await response.json(); if (cloudData) setData(prev => ({ ...prev, ...cloudData })); } catch (e) { console.log("Offline"); }
+                        try { 
+                            const response = await fetch(API_URL); 
+                            const cloudData = await response.json(); 
+                            if (cloudData) {
+                                // Simple migration to ensure new fields like isSkipped exist
+                                const migratedData = { ...cloudData, days: cloudData.days.map(d => ({...d, isSkipped: d.isSkipped || false})) };
+                                setData(prev => ({ ...prev, ...migratedData })); 
+                            }
+                        } catch (e) { console.log("Offline"); }
                     }
                     setIsLoading(false);
                 };
@@ -227,10 +242,42 @@
                 return { spentThisWeek, remaining, currentSavings, projectedTotal, weeksPassed };
             }, [data, viewWeek, config]);
 
+            // --- DATE LOGIC ---
+            const weekDates = useMemo(() => {
+                const weekStart = new Date(SEMESTER_START_DATE);
+                weekStart.setDate(weekStart.getDate() + (viewWeek - 1) * 7);
+                const wed = new Date(weekStart); wed.setDate(wed.getDate() + 2);
+                const thu = new Date(weekStart); thu.setDate(thu.getDate() + 3);
+                return {
+                    wed: `Wed, ${wed.toLocaleDateString('en-US', {month:'short', day:'numeric'})}`,
+                    thu: `Thu, ${thu.toLocaleDateString('en-US', {month:'short', day:'numeric'})}`
+                };
+            }, [viewWeek]);
+
             // --- ACTIONS ---
             const updateDay = (id, updates) => {
                 if (viewWeek === data.currentWeek) setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
                 else setData(prev => ({ ...prev, history: prev.history.map(h => h.week === viewWeek ? { ...h, days: h.days.map(d => d.id === id ? { ...d, ...updates } : d) } : h) }));
+            };
+
+            const toggleSkipped = (id) => {
+                // Find the day (Active or History)
+                let day;
+                if(viewWeek === data.currentWeek) day = data.days.find(d => d.id === id);
+                else {
+                    const hist = data.history.find(h => h.week === viewWeek);
+                    if(hist) day = hist.days.find(d => d.id === id);
+                }
+                
+                if (!day) return;
+
+                if (day.isSkipped) {
+                    // Undo Skip
+                    updateDay(id, { isSkipped: false, isDone: false, food: '', commute: config.commuteCost });
+                } else {
+                    // Skip Day (No Class)
+                    updateDay(id, { isSkipped: true, isDone: true, food: 0, commute: 0 });
+                }
             };
 
             const finishWeek = () => {
@@ -240,7 +287,7 @@
                     title: `Finish Week ${data.currentWeek}?`,
                     children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p><p className="text-zinc-500 mb-1">Total Saved</p><p className="text-2xl font-bold text-success">₱{Math.floor(extraSavings)}</p></div>,
                     onConfirm: () => {
-                        setData(prev => ({ ...prev, currentWeek: prev.currentWeek + 1, history: [...prev.history, newHistoryItem], days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false })) }));
+                        setData(prev => ({ ...prev, currentWeek: prev.currentWeek + 1, history: [...prev.history, newHistoryItem], days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) }));
                         setViewWeek(prev => prev + 1); setModal(null); setToast({ message: "Week saved", type: "success" });
                     },
                     onCancel: () => setModal(null)
@@ -248,17 +295,14 @@
             };
 
             const handleResetWeek = () => {
-                setData(prev => ({
-                    ...prev,
-                    days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false }))
-                }));
-                setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Current week reset", type: "success" });
+                setData(prev => ({ ...prev, days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) }));
+                setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Week reset", type: "success" });
             };
 
             const handleResetAll = async () => {
                 const emptyData = {
                     currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
-                    days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false }]
+                    days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }]
                 };
                 setToast({ message: "Wiping Cloud Database...", type: "warning" });
                 if(!API_URL.includes("PASTE_YOUR")) {
@@ -274,6 +318,7 @@
                 setToast({ message: "Preferences updated", type: "success" });
             };
 
+            // Budget Calc
             let daysToRender = viewWeek === data.currentWeek ? data.days : (data.history.find(h => h.week === viewWeek)?.days || []);
             if (viewWeek < data.currentWeek && daysToRender.length === 0) daysToRender = [{id:1},{id:2}]; 
             let runningCarryOver = 0;
@@ -324,23 +369,44 @@
                          </div>
 
                          <div className="p-4 space-y-4">
-                            {daysWithBudgets.map((day, idx) => (
-                                <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
-                                    <div className="flex justify-between items-center mb-4">
-                                        <div><span className="text-sm font-bold text-zinc-200 block tracking-tight">{idx === 0 ? 'Wednesday' : 'Thursday'}</span><span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span></div>
-                                        <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
+                            {daysWithBudgets.map((day, idx) => {
+                                const dateLabel = idx === 0 ? weekDates.wed : weekDates.thu;
+                                return (
+                                    <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isSkipped ? 'border-zinc-800 bg-zinc-900 opacity-60' : day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div>
+                                                <span className="text-sm font-bold text-zinc-200 block tracking-tight">{dateLabel}</span>
+                                                {!day.isSkipped && <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span>}
+                                                {day.isSkipped && <span className="text-[10px] text-zinc-500 font-bold bg-zinc-800 px-2 py-0.5 rounded mt-1 inline-block">NO CLASS</span>}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => toggleSkipped(day.id)} className={`text-[10px] px-3 py-1.5 font-bold rounded-full transition-all ${day.isSkipped ? 'bg-zinc-700 text-white' : 'bg-transparent border border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>{day.isSkipped ? 'Undo' : '⛔'}</button>
+                                                <button onClick={() => updateDay(day.id, { isDone: !day.isDone })} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
+                                            </div>
+                                        </div>
+                                        
+                                        {!day.isSkipped && (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
+                                                    <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
+                                                </div>
+                                                <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
+                                                    <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry surplus to next day" : "Lock surplus as savings"}</span>
+                                                    <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                                </div>
+                                            </>
+                                        )}
+                                        {/* Show Surplus Toggle even if Skipped, but hide inputs */}
+                                        {day.isSkipped && (
+                                            <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center opacity-100">
+                                                <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry ₱335 to tomorrow" : "Save the full ₱335"}</span>
+                                                <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
-                                        <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
-                                    </div>
-                                    
-                                    <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
-                                        <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry surplus to next day" : "Lock surplus as savings"}</span>
-                                        <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                          </div>
                          {viewWeek === data.currentWeek && (
                             <div className="p-4 pt-0"><button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button></div>
@@ -348,7 +414,7 @@
                     </div>
 
                     <div className="text-center pb-8">
-                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-danger border border-danger/20 px-5 py-2.5 rounded-full hover:bg-danger/10 transition-colors inline-flex items-center gap-2"><span>💸</span> Record Unplanned Spend</button>
+                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-danger border border-danger/20 px-5 py-2.5 rounded-full hover:bg-danger/10 transition-colors inline-flex items-center gap-2">Record Unplanned Spend</button>
                     </div>
 
                     {/* SETTINGS MODAL */}
