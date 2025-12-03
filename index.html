@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro | Complete</title>
+    <title>Saver Pro | Momentum</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -28,10 +28,15 @@
                         success: '#34d399', danger: '#fb7185', warning: '#fbbf24',
                     },
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    animation: { 'slide-up': 'slideUp 0.3s ease-out', 'fade-in': 'fadeIn 0.2s ease-out' },
+                    animation: { 
+                        'slide-up': 'slideUp 0.3s ease-out', 
+                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'flash-green': 'flashGreen 1s ease-out'
+                    },
                     keyframes: {
                         slideUp: { '0%': { transform: 'translateY(100%)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        flashGreen: { '0%': { color: '#34d399' }, '100%': { color: 'white' } }
                     }
                 }
             }
@@ -57,6 +62,9 @@
         }
         .switch-checkbox:checked + .switch-label { background-color: #34d399; }
         .switch-checkbox:checked + .switch-label::after { transform: translateX(18px); }
+        
+        /* Disabled Input Style */
+        .input-disabled { opacity: 0.4; pointer-events: none; filter: grayscale(1); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -67,20 +75,20 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         // ==========================================
-        // 🔧 SETUP: PASTE YOUR URL HERE
+        // 🔧 SETUP: URL PRE-FILLED
         // ==========================================
         const API_URL = "https://script.google.com/macros/s/AKfycbxNWva9ujwZpl4bIfDDs6X2PAaOYASbabuBDUQwYCf6domAvcUa9QWQxAx-1WE0ibrTzA/exec"; 
 
         // --- CONSTANTS ---
-        const SEMESTER_START_DATE = new Date('2025-12-01'); // Start date for date calc
+        const SEMESTER_START_DATE = new Date('2025-12-01');
 
         // --- COMPONENTS ---
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
             return (
-                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : type === 'warning' ? 'border-warning/30 text-warning' : 'border-danger/30 text-danger'}`}>
-                    <span className="text-lg">{type === 'success' ? '✓' : '⚠'}</span>
-                    <span className="font-medium text-sm text-zinc-100">{message}</span>
+                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : type === 'info' ? 'border-secondary/30 text-secondary' : 'border-danger/30 text-danger'}`}>
+                    <span className="text-lg">{type === 'success' ? '✓' : type === 'info' ? 'ℹ' : '⚠'}</span>
+                    <span className="font-medium text-sm text-zinc-100 whitespace-nowrap">{message}</span>
                 </div>
             );
         };
@@ -120,22 +128,25 @@
                 if(!canvasRef.current) return;
                 const ctx = canvasRef.current.getContext('2d');
                 const labels = Array.from({length: weeksPassed + 1}, (_, i) => `W${i}`);
-                let runningTotal = 0; const dataPoints = [0]; 
+                
+                let runningTotal = 0; 
+                const dataPoints = [0]; 
                 history.slice().sort((a,b) => a.week - b.week).forEach(h => {
-                    runningTotal += h.savedExtra; runningTotal += 1275; 
+                    runningTotal += (h.savedExtra || 0); 
                     dataPoints.push(runningTotal);
                 });
+                
                 if (dataPoints.length <= weeksPassed) dataPoints.push(currentSavings);
 
                 let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(216, 180, 254, 0.2)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                gradient.addColorStop(0, 'rgba(52, 211, 153, 0.2)'); gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
                 const chart = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Savings', data: dataPoints, borderColor: '#d8b4fe', borderWidth: 2, backgroundColor: gradient, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, fill: true
+                            label: 'Wallet Savings', data: dataPoints, borderColor: '#34d399', borderWidth: 2, backgroundColor: gradient, tension: 0.4, pointRadius: 0, pointHoverRadius: 4, fill: true
                         }]
                     },
                     options: {
@@ -162,7 +173,11 @@
             const [viewWeek, setViewWeek] = useState(1);
             
             const [data, setData] = useState({
-                currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
+                currentWeek: 1, 
+                totalUnplanned: 0, 
+                previousProjected: config.baseGoal, // Track the "Last Week's" Goal
+                history: [], 
+                unplannedHistory: [],
                 days: [ { id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false } ]
             });
 
@@ -174,6 +189,8 @@
             const [tempConfig, setTempConfig] = useState(config);
             const [toast, setToast] = useState(null);
             const [modal, setModal] = useState(null);
+            
+            const prevSavingsRef = useRef(0);
 
             // --- LOAD ---
             useEffect(() => {
@@ -181,20 +198,23 @@
                     const localData = localStorage.getItem('savings_tracker_pro');
                     if (localData) { 
                         const parsed = JSON.parse(localData); 
+                        // Migration: Ensure previousProjected exists
+                        if(parsed.previousProjected === undefined) parsed.previousProjected = config.baseGoal;
                         setData(parsed); 
                         setViewWeek(parsed.currentWeek); 
                     }
-                    if(!API_URL.includes("PASTE_YOUR")) {
-                        try { 
-                            const response = await fetch(API_URL); 
-                            const cloudData = await response.json(); 
-                            if (cloudData) {
-                                // Simple migration to ensure new fields like isSkipped exist
-                                const migratedData = { ...cloudData, days: cloudData.days.map(d => ({...d, isSkipped: d.isSkipped || false})) };
-                                setData(prev => ({ ...prev, ...migratedData })); 
-                            }
-                        } catch (e) { console.log("Offline"); }
-                    }
+                    try { 
+                        const response = await fetch(API_URL); 
+                        const cloudData = await response.json(); 
+                        if (cloudData) {
+                            const migratedData = { 
+                                ...cloudData, 
+                                days: cloudData.days.map(d => ({...d, isSkipped: d.isSkipped || false})),
+                                previousProjected: cloudData.previousProjected !== undefined ? cloudData.previousProjected : config.baseGoal 
+                            };
+                            setData(prev => ({ ...prev, ...migratedData })); 
+                        }
+                    } catch (e) { console.log("Offline"); }
                     setIsLoading(false);
                 };
                 load();
@@ -208,25 +228,40 @@
                 localStorage.setItem('savings_config', JSON.stringify(config));
                 localStorage.setItem('savings_chart_collapsed', isChartCollapsed);
                 const timeoutId = setTimeout(async () => {
-                    if(!API_URL.includes("PASTE_YOUR")) { try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } catch (e) {} }
+                    try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } catch (e) {}
                 }, 1000);
                 return () => clearTimeout(timeoutId);
             }, [data, config, isChartCollapsed]);
 
-            // --- STATS ---
+            // --- STATS ENGINE ---
             const stats = useMemo(() => {
-                let totalSavedExtra = 0;
-                data.history.forEach(h => totalSavedExtra += (h.savedExtra || 0));
+                const historySavings = data.history.reduce((acc, h) => acc + (h.savedExtra || 0), 0);
 
+                let activeWeekSavings = 0;
+                data.days.forEach(d => {
+                    if (d.isDone && !d.carryOver) {
+                        const spent = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
+                        activeWeekSavings += Math.max(0, config.dailyLimit - spent);
+                    }
+                });
+
+                const currentSavings = historySavings + activeWeekSavings - data.totalUnplanned;
+                const projectedTotal = config.baseGoal + currentSavings;
+                
+                // Trend Logic
+                const trendDiff = projectedTotal - (data.previousProjected || config.baseGoal);
+
+                // Active Week Logic
                 let daysToCalc = data.days;
                 if (viewWeek < data.currentWeek) {
                     const pastWeek = data.history.find(h => h.week === viewWeek);
                     if (pastWeek && pastWeek.days) daysToCalc = pastWeek.days;
                 }
 
-                let spentThisWeek = 0; let lockedWeeklySavings = 0;
+                let spentThisWeek = 0;
+                let lockedWeeklySavings = 0;
                 daysToCalc.forEach(d => {
-                    const dailyTotal = (parseFloat(d.food)||0) + (parseFloat(d.commute)||0);
+                    const dailyTotal = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
                     if(d.isDone) {
                         spentThisWeek += dailyTotal;
                         if(!d.carryOver) lockedWeeklySavings += Math.max(0, config.dailyLimit - dailyTotal);
@@ -234,13 +269,21 @@
                 });
                 
                 const remaining = config.weeklyAllowance - spentThisWeek - lockedWeeklySavings;
-                const weeksPassed = data.currentWeek - 1;
-                const weeklyBaseSavings = (64000 - (config.weeklyAllowance * config.semesterWeeks)) / config.semesterWeeks; 
-                const currentSavings = (weeksPassed * weeklyBaseSavings) + totalSavedExtra - data.totalUnplanned;
-                const projectedTotal = config.baseGoal + totalSavedExtra + lockedWeeklySavings - data.totalUnplanned;
 
-                return { spentThisWeek, remaining, currentSavings, projectedTotal, weeksPassed };
+                return { spentThisWeek, remaining, currentSavings, projectedTotal, trendDiff };
             }, [data, viewWeek, config]);
+
+            // --- FEEDBACK ---
+            useEffect(() => {
+                if (viewWeek < data.currentWeek) {
+                    const diff = stats.currentSavings - prevSavingsRef.current;
+                    if (diff !== 0 && Math.abs(diff) < 1000) { 
+                        const sign = diff > 0 ? '+' : '';
+                        setToast({ message: `Savings adjusted: ${sign}₱${Math.abs(diff)}`, type: 'info' });
+                    }
+                }
+                prevSavingsRef.current = stats.currentSavings;
+            }, [stats.currentSavings, viewWeek, data.currentWeek]);
 
             // --- DATE LOGIC ---
             const weekDates = useMemo(() => {
@@ -256,75 +299,89 @@
 
             // --- ACTIONS ---
             const updateDay = (id, updates) => {
-                if (viewWeek === data.currentWeek) setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
-                else setData(prev => ({ ...prev, history: prev.history.map(h => h.week === viewWeek ? { ...h, days: h.days.map(d => d.id === id ? { ...d, ...updates } : d) } : h) }));
+                if (viewWeek === data.currentWeek) {
+                    setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
+                } else {
+                    setData(prev => ({
+                        ...prev,
+                        history: prev.history.map(h => {
+                            if (h.week === viewWeek) {
+                                const newDays = h.days.map(d => d.id === id ? { ...d, ...updates } : d);
+                                let newSavedExtra = 0;
+                                newDays.forEach(d => {
+                                    if (d.isDone && !d.carryOver) {
+                                        const spent = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
+                                        newSavedExtra += Math.max(0, config.dailyLimit - spent);
+                                    }
+                                });
+                                return { ...h, days: newDays, savedExtra: newSavedExtra };
+                            }
+                            return h;
+                        })
+                    }));
+                }
             };
 
             const toggleSkipped = (id) => {
-                // Find the day (Active or History)
                 let day;
                 if(viewWeek === data.currentWeek) day = data.days.find(d => d.id === id);
-                else {
-                    const hist = data.history.find(h => h.week === viewWeek);
-                    if(hist) day = hist.days.find(d => d.id === id);
-                }
+                else { const hist = data.history.find(h => h.week === viewWeek); if(hist) day = hist.days.find(d => d.id === id); }
                 
                 if (!day) return;
-
-                if (day.isSkipped) {
-                    // Undo Skip
-                    updateDay(id, { isSkipped: false, isDone: false, food: '', commute: config.commuteCost });
-                } else {
-                    // Skip Day (No Class)
-                    updateDay(id, { isSkipped: true, isDone: true, food: 0, commute: 0 });
-                }
+                if (day.isSkipped) updateDay(id, { isSkipped: false, isDone: false, food: '', commute: config.commuteCost });
+                else updateDay(id, { isSkipped: true, isDone: true, food: 0, commute: 0, carryOver: false }); 
             };
 
             const finishWeek = () => {
-                const extraSavings = config.weeklyAllowance - stats.spentThisWeek;
-                const newHistoryItem = { week: data.currentWeek, spent: stats.spentThisWeek, savedExtra: extraSavings, date: new Date().toLocaleDateString(), days: data.days };
+                let extraSavings = 0;
+                data.days.forEach(d => {
+                    if (d.isDone && !d.carryOver) {
+                        const spent = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
+                        extraSavings += Math.max(0, config.dailyLimit - spent);
+                    }
+                });
+
+                const newHistoryItem = { week: data.currentWeek, savedExtra: extraSavings, date: new Date().toLocaleDateString(), days: data.days };
+
                 setModal({
                     title: `Finish Week ${data.currentWeek}?`,
-                    children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p><p className="text-zinc-500 mb-1">Total Saved</p><p className="text-2xl font-bold text-success">₱{Math.floor(extraSavings)}</p></div>,
+                    children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p><p className="text-zinc-500 mb-1">Added to Wallet</p><p className="text-2xl font-bold text-success">₱{Math.floor(extraSavings)}</p></div>,
                     onConfirm: () => {
-                        setData(prev => ({ ...prev, currentWeek: prev.currentWeek + 1, history: [...prev.history, newHistoryItem], days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) }));
+                        setData(prev => ({ 
+                            ...prev, 
+                            currentWeek: prev.currentWeek + 1, 
+                            // IMPORTANT: Snapshot current projected as the new "Previous" for next week's comparison
+                            previousProjected: stats.projectedTotal, 
+                            history: [...prev.history, newHistoryItem], 
+                            days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) 
+                        }));
                         setViewWeek(prev => prev + 1); setModal(null); setToast({ message: "Week saved", type: "success" });
                     },
                     onCancel: () => setModal(null)
                 });
             };
 
-            const handleResetWeek = () => {
-                setData(prev => ({ ...prev, days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) }));
-                setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Week reset", type: "success" });
-            };
-
             const handleResetAll = async () => {
                 const emptyData = {
-                    currentWeek: 1, totalUnplanned: 0, history: [], unplannedHistory: [],
+                    currentWeek: 1, totalUnplanned: 0, previousProjected: config.baseGoal, history: [], unplannedHistory: [],
                     days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false }]
                 };
                 setToast({ message: "Wiping Cloud Database...", type: "warning" });
-                if(!API_URL.includes("PASTE_YOUR")) {
-                    try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) { console.error(e); }
-                }
+                try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) { console.error(e); }
                 localStorage.removeItem('savings_tracker_pro');
                 setTimeout(() => window.location.reload(), 1500);
             };
 
-            const saveSettings = () => {
-                setConfig(tempConfig);
-                setSettingsOpen(false);
-                setToast({ message: "Preferences updated", type: "success" });
-            };
+            const saveSettings = () => { setConfig(tempConfig); setSettingsOpen(false); setToast({ message: "Preferences updated", type: "success" }); };
 
             // Budget Calc
             let daysToRender = viewWeek === data.currentWeek ? data.days : (data.history.find(h => h.week === viewWeek)?.days || []);
             if (viewWeek < data.currentWeek && daysToRender.length === 0) daysToRender = [{id:1},{id:2}]; 
+            
             let runningCarryOver = 0;
             const daysWithBudgets = daysToRender.map(day => {
                 const budgetForToday = config.dailyLimit + runningCarryOver;
-                const spentToday = (parseFloat(day.food)||0) + (parseFloat(day.commute)||0);
+                const spentToday = day.isSkipped ? 0 : ((parseFloat(day.food)||0) + (parseFloat(day.commute)||0));
                 if (day.isDone && day.carryOver) runningCarryOver = Math.max(0, budgetForToday - spentToday); else runningCarryOver = 0;
                 return { ...day, budgetAvailable: budgetForToday };
             });
@@ -350,14 +407,30 @@
                                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Analytics</span>
                                 <span className={`transform transition-transform duration-300 text-zinc-600 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
                             </div>
-                            {!isChartCollapsed && (<div className="px-4 pb-4"><SavingsChart history={data.history} currentSavings={stats.currentSavings} weeksPassed={stats.weeksPassed} /></div>)}
+                            {!isChartCollapsed && (<div className="px-4 pb-4"><SavingsChart history={data.history} currentSavings={stats.currentSavings} weeksPassed={stats.currentWeek - 1} /></div>)}
                         </div>
                     )}
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💎</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Current</p><p className="text-2xl font-bold text-white tracking-tight">₱{Math.floor(stats.currentSavings).toLocaleString()}</p></div>
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🚀</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Projected</p><p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p></div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💰</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Wallet Savings</p>
+                            <p className={`text-2xl font-bold text-white tracking-tight ${viewWeek < data.currentWeek ? 'animate-flash-green' : ''}`}>₱{Math.floor(stats.currentSavings).toLocaleString()}</p>
+                        </div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group flex flex-col justify-center">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🏁</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">End Goal</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>
+                                {/* Trend Indicator */}
+                                {Math.abs(stats.trendDiff) > 0 && (
+                                    <span className={`text-[10px] font-bold ${stats.trendDiff > 0 ? 'text-success' : 'text-danger'}`}>
+                                        {stats.trendDiff > 0 ? '▲' : '▼'} ₱{Math.abs(Math.floor(stats.trendDiff))}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Tracker */}
@@ -385,25 +458,17 @@
                                             </div>
                                         </div>
                                         
-                                        {!day.isSkipped && (
-                                            <>
-                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
-                                                    <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
-                                                </div>
-                                                <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
-                                                    <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry surplus to next day" : "Lock surplus as savings"}</span>
-                                                    <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
-                                                </div>
-                                            </>
-                                        )}
-                                        {/* Show Surplus Toggle even if Skipped, but hide inputs */}
-                                        {day.isSkipped && (
-                                            <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center opacity-100">
-                                                <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry ₱335 to tomorrow" : "Save the full ₱335"}</span>
-                                                <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                        <div className={`transition-opacity duration-300 ${day.isSkipped ? 'input-disabled' : 'opacity-100'}`}>
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
+                                                <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Food</p><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
                                             </div>
-                                        )}
+                                        </div>
+
+                                        <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
+                                            <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-zinc-300' : 'text-zinc-500'}`}>{day.carryOver ? "Carry surplus to next day" : "Lock surplus as savings"}</span>
+                                            <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -448,7 +513,7 @@
                     </Modal>
 
                     {/* RESET MODALS */}
-                    {resetModalOpen === 'week' && ( <Modal isOpen={true} title="Reset Week?" confirmText="Yes, Reset" onConfirm={handleResetWeek} onCancel={() => setResetModalOpen(null)}>Are you sure? This clears inputs for the current week.</Modal> )}
+                    {resetModalOpen === 'week' && ( <Modal isOpen={true} title="Reset Week?" confirmText="Yes, Reset" onConfirm={() => { setData(prev => ({ ...prev, days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false })) })); setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Week reset", type: "success" }); }} onCancel={() => setResetModalOpen(null)}>Are you sure? This clears inputs for the current week.</Modal> )}
                     {resetModalOpen === 'all' && ( <Modal isOpen={true} title="Delete Everything?" confirmText="Yes, Delete All" isDanger={true} onConfirm={handleResetAll} onCancel={() => setResetModalOpen(null)}>This will wipe all data, history, and cloud settings permanently.</Modal> )}
 
                     <Modal isOpen={!!modal} title={modal?.title} onConfirm={modal?.onConfirm} onCancel={modal?.onCancel}>{modal?.children}</Modal>
