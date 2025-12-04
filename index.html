@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro | Responsive</title>
+    <title>Saver Pro | Crash Proof</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -239,13 +239,13 @@
             });
 
             // Modals
-            const [modal, setModal] = useState(null);
+            const [modal, setModal] = useState(null); // FIXED
             const [spendModalOpen, setSpendModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [logsModalOpen, setLogsModalOpen] = useState(false);
             const [resetModalOpen, setResetModalOpen] = useState(null); 
             const [overspendModalOpen, setOverspendModalOpen] = useState(null); 
-            const [isResetting, setIsResetting] = useState(false); // NEW STATE for loading feedback
+            const [isResetting, setIsResetting] = useState(false); // FIXED
 
             // Unplanned Inputs
             const [unplannedType, setUnplannedType] = useState('spend'); 
@@ -257,20 +257,26 @@
             
             const prevSavingsRef = useRef(0);
 
-            // --- NOTIFICATION HANDLERS ---
+            // --- NOTIFICATION HANDLERS (CRASH PROOF) ---
             const requestNotifPermission = async () => {
                 if (!("Notification" in window)) return;
-                const permission = await Notification.requestPermission();
-                if (permission === "granted") setToast({ message: "Notifications enabled!", type: "success" });
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission === "granted") setToast({ message: "Notifications enabled!", type: "success" });
+                } catch (e) { console.error("Permission error", e); }
             };
 
             const updateNotification = (unplannedBudget, dayBudget = null) => {
-                if (!config.enableNotif || Notification.permission !== "granted") return;
-                const title = `Budget: ₱${Math.floor(unplannedBudget)}`;
-                const body = dayBudget !== null ? `Today's Allowance: ₱${Math.floor(dayBudget)}` : "Keep saving!";
-                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.ready.then(reg => { reg.showNotification('Saver Pro Status', { body, icon: 'logo.png', tag: 'status-bar', silent: true }); });
-                } else { new Notification(title, { body, icon: 'logo.png', tag: 'status-bar', silent: true }); }
+                if (!config.enableNotif || !('serviceWorker' in navigator) || Notification.permission !== "granted") return;
+                
+                const title = `Saver Pro Status`;
+                let body = `Unplanned: ₱${Math.floor(unplannedBudget)}`;
+                if (dayBudget !== null) body += ` | Today: ₱${Math.floor(dayBudget)}`;
+                
+                // SAFE WAY: Only use SW
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.showNotification(title, { body, icon: 'logo.png', tag: 'status-bar', silent: true });
+                }).catch(e => console.log("SW not ready for notif"));
             };
 
             // Load & Save
@@ -302,6 +308,7 @@
             // --- STATS ENGINE ---
             const stats = useMemo(() => {
                 let totalCarriedToBudget = 0; let totalDirectSavings = 0;   
+                
                 const calcDaily = (d) => {
                     if (!d.isDone) return { surplus: 0, isCarry: false };
                     const spent = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
@@ -309,6 +316,7 @@
                     const rawSurplus = config.dailyLimit - spent;
                     return { surplus: rawSurplus, isCarry: d.carryOver };
                 };
+
                 data.history.forEach(h => { if(h.days) h.days.forEach(d => { const { surplus, isCarry } = calcDaily(d); if(isCarry) totalCarriedToBudget += surplus; else totalDirectSavings += surplus; }); });
                 data.days.forEach(d => { const { surplus, isCarry } = calcDaily(d); if(isCarry) totalCarriedToBudget += surplus; else totalDirectSavings += surplus; });
 
@@ -423,17 +431,13 @@
                 if(unplannedType === 'spend') setToast({ message: `Spent ₱${amount}`, type: "success" }); else setToast({ message: `Saved ₱${amount}`, type: "success" });
                 setSpendModalOpen(false); setSpendAmount(''); setSpendReason('');
             };
-
-            // FIX: Added feedback loading state to Reset All
             const handleResetAll = async () => {
-                setIsResetting(true); // START LOADING
+                setIsResetting(true);
                 const emptyData = { currentWeek: 1, totalUnplanned: 0, previousProjected: config.baseGoal, history: [], unplannedHistory: [], days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false }] };
                 setToast({ message: "Wiping Cloud Database...", type: "warning" });
-                try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) { console.error(e); }
-                localStorage.removeItem('savings_tracker_pro'); 
-                window.location.reload(); // Immediate reload after await
+                try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) {}
+                localStorage.removeItem('savings_tracker_pro'); window.location.reload();
             };
-
             const saveSettings = () => { setConfig(tempConfig); setSettingsOpen(false); if(tempConfig.enableNotif) requestNotifPermission(); setToast({ message: "Updated", type: "success" }); };
 
             // Render Logic
