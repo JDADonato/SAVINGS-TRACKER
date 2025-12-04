@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro | Crash Proof</title>
+    <title>Saver Pro | Android Fix</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -216,7 +216,7 @@
                             </div>
                         )}
                     </div>
-                    <div className="pt-4 mt-2 border-t border-zinc-800 flex-shrink-0"><button onClick={onClose} className="w-full py-3 rounded-xl bg-white text-black font-bold text-sm hover:bg-zinc-200">Close Logs</button></div>
+                    {/* Fixed: No extra close button here */}
                 </div>
             );
         };
@@ -239,13 +239,13 @@
             });
 
             // Modals
-            const [modal, setModal] = useState(null); // FIXED
+            const [modal, setModal] = useState(null);
             const [spendModalOpen, setSpendModalOpen] = useState(false);
             const [settingsOpen, setSettingsOpen] = useState(false);
             const [logsModalOpen, setLogsModalOpen] = useState(false);
             const [resetModalOpen, setResetModalOpen] = useState(null); 
             const [overspendModalOpen, setOverspendModalOpen] = useState(null); 
-            const [isResetting, setIsResetting] = useState(false); // FIXED
+            const [isResetting, setIsResetting] = useState(false); 
 
             // Unplanned Inputs
             const [unplannedType, setUnplannedType] = useState('spend'); 
@@ -257,7 +257,7 @@
             
             const prevSavingsRef = useRef(0);
 
-            // --- NOTIFICATION HANDLERS (CRASH PROOF) ---
+            // --- NOTIFICATION HANDLERS (ANDROID FIX) ---
             const requestNotifPermission = async () => {
                 if (!("Notification" in window)) return;
                 try {
@@ -273,10 +273,19 @@
                 let body = `Unplanned: ₱${Math.floor(unplannedBudget)}`;
                 if (dayBudget !== null) body += ` | Today: ₱${Math.floor(dayBudget)}`;
                 
-                // SAFE WAY: Only use SW
+                // FIXED: Absolute URL for Icon + Badge property
+                const iconPath = new URL('logo.png', window.location.href).href; 
+
                 navigator.serviceWorker.ready.then(reg => {
-                    reg.showNotification(title, { body, icon: 'logo.png', tag: 'status-bar', silent: true });
-                }).catch(e => console.log("SW not ready for notif"));
+                    reg.showNotification(title, { 
+                        body: body, 
+                        icon: iconPath, 
+                        badge: iconPath, // Crucial for Android status bar
+                        tag: 'status-bar', 
+                        silent: true,
+                        requireInteraction: true // Keep it persistent if possible
+                    });
+                }).catch(e => console.log("SW not ready"));
             };
 
             // Load & Save
