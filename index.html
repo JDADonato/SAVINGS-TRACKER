@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Saver Pro | Android Fix</title>
+    <title>Saver Pro | Final</title>
     <meta name="theme-color" content="#000000">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
@@ -39,6 +39,7 @@
                         'pulse-slow': 'pulse 3s infinite'
                     },
                     keyframes: {
+                        // Pure vertical movement to avoid X-axis conflicts
                         slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
                         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
                         shake: { '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' }, '20%, 80%': { transform: 'translate3d(2px, 0, 0)' }, '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' }, '40%, 60%': { transform: 'translate3d(4px, 0, 0)' } },
@@ -98,12 +99,16 @@
         );
 
         // --- COMPONENTS ---
+        
+        // FIXED: Re-applied Flexbox centering to fix the animation direction
         const Toast = ({ message, type, onClose }) => {
             useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
             return (
-                <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[60] animate-slide-up flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : type === 'info' ? 'border-secondary/30 text-secondary' : 'border-danger/30 text-danger'}`}>
-                    <span className="text-lg">{type === 'success' ? '✓' : type === 'info' ? 'ℹ' : '⚠'}</span>
-                    <span className="font-medium text-sm text-zinc-100 whitespace-nowrap">{message}</span>
+                <div className="fixed bottom-8 left-0 w-full flex justify-center z-[60] pointer-events-none">
+                    <div className={`animate-slide-up pointer-events-auto flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl glass border ${type === 'success' ? 'border-success/30 text-success' : type === 'info' ? 'border-secondary/30 text-secondary' : 'border-danger/30 text-danger'}`}>
+                        <span className="text-lg">{type === 'success' ? '✓' : type === 'info' ? 'ℹ' : '⚠'}</span>
+                        <span className="font-medium text-sm text-zinc-100 whitespace-nowrap">{message}</span>
+                    </div>
                 </div>
             );
         };
@@ -216,7 +221,7 @@
                             </div>
                         )}
                     </div>
-                    {/* Fixed: No extra close button here */}
+                    {/* FIXED: No double buttons here */}
                 </div>
             );
         };
@@ -257,7 +262,7 @@
             
             const prevSavingsRef = useRef(0);
 
-            // --- NOTIFICATION HANDLERS (ANDROID FIX) ---
+            // --- NOTIFICATION HANDLERS (CRASH PROOF) ---
             const requestNotifPermission = async () => {
                 if (!("Notification" in window)) return;
                 try {
@@ -273,19 +278,9 @@
                 let body = `Unplanned: ₱${Math.floor(unplannedBudget)}`;
                 if (dayBudget !== null) body += ` | Today: ₱${Math.floor(dayBudget)}`;
                 
-                // FIXED: Absolute URL for Icon + Badge property
-                const iconPath = new URL('logo.png', window.location.href).href; 
-
                 navigator.serviceWorker.ready.then(reg => {
-                    reg.showNotification(title, { 
-                        body: body, 
-                        icon: iconPath, 
-                        badge: iconPath, // Crucial for Android status bar
-                        tag: 'status-bar', 
-                        silent: true,
-                        requireInteraction: true // Keep it persistent if possible
-                    });
-                }).catch(e => console.log("SW not ready"));
+                    reg.showNotification(title, { body, icon: 'logo.png', tag: 'status-bar', silent: true });
+                }).catch(e => console.log("SW not ready for notif"));
             };
 
             // Load & Save
@@ -337,8 +332,10 @@
                 const projectedTotal = config.baseGoal + walletSavings;
                 const trendDiff = projectedTotal - (data.previousProjected || config.baseGoal);
 
+                // Weekly Budget View
                 let daysToCalc = data.days;
                 if (viewWeek < data.currentWeek) { const pastWeek = data.history.find(h => h.week === viewWeek); if (pastWeek && pastWeek.days) daysToCalc = pastWeek.days; }
+                
                 let spentThisWeek = 0;
                 daysToCalc.forEach(d => {
                     const spent = d.isSkipped ? 0 : ((parseFloat(d.food)||0) + (parseFloat(d.commute)||0));
@@ -383,6 +380,7 @@
                 if (viewWeek === data.currentWeek) setData(prev => ({ ...prev, days: prev.days.map(d => d.id === id ? { ...d, ...updates } : d) }));
                 else setData(prev => ({ ...prev, history: prev.history.map(h => { if (h.week === viewWeek) { const newDays = h.days.map(d => d.id === id ? { ...d, ...updates } : d); return { ...h, days: newDays }; } return h; }) }));
             };
+
             const toggleSkipped = (id) => {
                 let day;
                 if(viewWeek === data.currentWeek) day = data.days.find(d => d.id === id); else { const hist = data.history.find(h => h.week === viewWeek); if(hist) day = hist.days.find(d => d.id === id); }
@@ -390,6 +388,7 @@
                 if (day.isSkipped) updateDay(id, { isSkipped: false, isDone: false, food: '', commute: config.commuteCost });
                 else updateDay(id, { isSkipped: true, isDone: true, food: 0, commute: 0, carryOver: false });
             };
+
             const handleMarkDone = (id) => {
                 const day = data.days.find(d => d.id === id);
                 if (day.isSkipped || day.isDone) { updateDay(id, { isDone: !day.isDone }); return; }
@@ -403,15 +402,22 @@
                 if (spent > availableForDay) setOverspendModalOpen({ dayId: id, amount: spent - availableForDay });
                 else updateDay(id, { isDone: true });
             };
+
             const handleOverspendDecision = (decision) => {
                 const { dayId, amount } = overspendModalOpen;
-                if (decision === 'next_day') updateDay(dayId, { isDone: true, carryOver: true, negativeCarry: true });
-                else if (decision === 'unplanned') {
+                if (decision === 'next_day') {
+                    updateDay(dayId, { isDone: true, carryOver: true, negativeCarry: true });
+                } else if (decision === 'unplanned') {
                     const newTx = { id: Date.now(), week: data.currentWeek, amount, reason: `Overspend Cover (Day ${dayId})`, date: new Date().toISOString().split('T')[0], type: 'spend' };
-                    setData(prev => ({ ...prev, unplannedHistory: [newTx, ...prev.unplannedHistory], days: prev.days.map(d => d.id === dayId ? { ...d, isDone: true, unplannedCover: true } : d) }));
+                    setData(prev => ({ 
+                        ...prev, 
+                        unplannedHistory: [newTx, ...prev.unplannedHistory],
+                        days: prev.days.map(d => d.id === dayId ? { ...d, isDone: true, unplannedCover: true } : d)
+                    }));
                 }
                 setOverspendModalOpen(null);
             };
+
             const finishWeek = () => {
                 let debtForNextWeek = 0;
                 const lastDay = data.days[data.days.length - 1];
@@ -421,16 +427,24 @@
                     if (data.days[0].isDone && data.days[0].carryOver) { const d1Spent = ((parseFloat(data.days[0].food)||0) + (parseFloat(data.days[0].commute)||0)); budget += Math.max(0, config.dailyLimit - d1Spent); }
                     debtForNextWeek = Math.max(0, spent - budget);
                 }
+
                 const newHistoryItem = { week: data.currentWeek, date: new Date().toLocaleDateString(), days: data.days };
                 setModal({
                     title: `Finish Week ${data.currentWeek}?`,
                     children: <div className="text-center"><p className="text-zinc-500 mb-1">Total Spent</p><p className="text-2xl font-bold text-white mb-4">₱{stats.spentThisWeek}</p></div>,
                     onConfirm: () => {
-                        setData(prev => ({ ...prev, currentWeek: prev.currentWeek + 1, previousProjected: stats.projectedTotal, history: [...prev.history, newHistoryItem], nextWeekDebt: debtForNextWeek, days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false, negativeCarry: false, unplannedCover: false })) }));
+                        setData(prev => ({ 
+                            ...prev, currentWeek: prev.currentWeek + 1, previousProjected: stats.projectedTotal, 
+                            history: [...prev.history, newHistoryItem], 
+                            nextWeekDebt: debtForNextWeek,
+                            days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false, negativeCarry: false, unplannedCover: false })) 
+                        }));
                         setViewWeek(prev => prev + 1); setModal(null); setToast({ message: "Week saved", type: "success" });
-                    }, onCancel: () => setModal(null)
+                    },
+                    onCancel: () => setModal(null)
                 });
             };
+
             const handleUnplannedSubmit = () => {
                 const amount = parseFloat(spendAmount);
                 if(!amount || amount <= 0) return;
@@ -440,6 +454,7 @@
                 if(unplannedType === 'spend') setToast({ message: `Spent ₱${amount}`, type: "success" }); else setToast({ message: `Saved ₱${amount}`, type: "success" });
                 setSpendModalOpen(false); setSpendAmount(''); setSpendReason('');
             };
+
             const handleResetAll = async () => {
                 setIsResetting(true);
                 const emptyData = { currentWeek: 1, totalUnplanned: 0, previousProjected: config.baseGoal, history: [], unplannedHistory: [], days: [{ id: 1, food: '', commute: config.commuteCost, isDone: false, carryOver: false }, { id: 2, food: '', commute: config.commuteCost, isDone: false, carryOver: false }] };
@@ -447,17 +462,25 @@
                 try { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(emptyData) }); } catch (e) {}
                 localStorage.removeItem('savings_tracker_pro'); window.location.reload();
             };
+
             const saveSettings = () => { setConfig(tempConfig); setSettingsOpen(false); if(tempConfig.enableNotif) requestNotifPermission(); setToast({ message: "Updated", type: "success" }); };
 
             // Render Logic
             let daysToRender = viewWeek === data.currentWeek ? data.days : (data.history.find(h => h.week === viewWeek)?.days || []);
             if (viewWeek < data.currentWeek && daysToRender.length === 0) daysToRender = [{id:1},{id:2}]; 
+            
             let runningCarryOver = 0;
             const daysWithBudgets = daysToRender.map(day => {
                 let budgetForToday = config.dailyLimit + runningCarryOver;
                 if (day.id === 1 && viewWeek === data.currentWeek && data.nextWeekDebt > 0) budgetForToday -= data.nextWeekDebt;
+
                 const spentToday = day.isSkipped ? 0 : ((parseFloat(day.food)||0) + (parseFloat(day.commute)||0));
-                if (day.isDone && day.carryOver) { if (day.unplannedCover) runningCarryOver = 0; else runningCarryOver = budgetForToday - spentToday; } else { runningCarryOver = 0; }
+                if (day.isDone && day.carryOver) {
+                    if (day.unplannedCover) runningCarryOver = 0; 
+                    else runningCarryOver = budgetForToday - spentToday; 
+                } else {
+                    runningCarryOver = 0;
+                }
                 return { ...day, budgetAvailable: budgetForToday };
             });
 
@@ -465,47 +488,142 @@
 
             return (
                 <div className="w-full max-w-md space-y-8 pb-24 relative animate-slide-up">
+                    
+                    {/* Header */}
                     <div className="flex justify-between items-center pt-2">
-                         <div className="flex items-center gap-4"><img src="logo.png" alt="Logo" className="w-11 h-11 rounded-2xl shadow-2xl border border-white/5" /><div><h1 className="text-2xl font-bold text-white tracking-tight">Saver<span className="text-zinc-500">Pro</span></h1><p className="text-[10px] text-zinc-500 uppercase tracking-widest">Semester Goal</p></div></div>
+                         <div className="flex items-center gap-4">
+                            <img src="logo.png" alt="Logo" className="w-11 h-11 rounded-2xl shadow-2xl border border-white/5" />
+                            <div><h1 className="text-2xl font-bold text-white tracking-tight">Saver<span className="text-zinc-500">Pro</span></h1><p className="text-[10px] text-zinc-500 uppercase tracking-widest">Semester Goal</p></div>
+                         </div>
                          <button onClick={() => { setTempConfig(config); setSettingsOpen(true); }} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors">⚙️</button>
                     </div>
-                    {config.enableChart && (<div className="glass rounded-3xl overflow-hidden transition-all duration-300"><div onClick={() => setIsChartCollapsed(!isChartCollapsed)} className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/5 active:bg-white/10 transition-colors"><span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Analytics</span><span className={`transform transition-transform duration-300 text-zinc-600 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span></div>{!isChartCollapsed && (<div className="px-4 pb-4"><SavingsChart history={data.history} currentSavings={stats.walletSavings} weeksPassed={stats.currentWeek - 1} /></div>)}</div>)}
+
+                    {/* Chart */}
+                    {config.enableChart && (
+                        <div className="glass rounded-3xl overflow-hidden transition-all duration-300">
+                            <div onClick={() => setIsChartCollapsed(!isChartCollapsed)} className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/5 active:bg-white/10 transition-colors">
+                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Analytics</span>
+                                <span className={`transform transition-transform duration-300 text-zinc-600 ${isChartCollapsed ? '-rotate-90' : 'rotate-0'}`}>▼</span>
+                            </div>
+                            {!isChartCollapsed && (<div className="px-4 pb-4"><SavingsChart history={data.history} currentSavings={stats.walletSavings} weeksPassed={stats.currentWeek - 1} /></div>)}
+                        </div>
+                    )}
+
+                    {/* Stats */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💰</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Wallet Savings</p><p className={`text-2xl font-bold text-white tracking-tight`}>₱{Math.floor(stats.walletSavings).toLocaleString()}</p></div>
-                        <div className="glass p-5 rounded-3xl relative overflow-hidden group flex flex-col justify-center"><div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🏁</span></div><p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">End Goal</p><div className="flex items-baseline gap-2"><p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>{Math.abs(stats.trendDiff) > 0 && (<span className={`text-[10px] font-bold ${stats.trendDiff > 0 ? 'text-success' : 'text-danger'}`}>{stats.trendDiff > 0 ? '▲' : '▼'} ₱{Math.abs(Math.floor(stats.trendDiff))}</span>)}</div></div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">💰</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">Wallet Savings</p>
+                            <p className={`text-2xl font-bold text-white tracking-tight`}>₱{Math.floor(stats.walletSavings).toLocaleString()}</p>
+                        </div>
+                        <div className="glass p-5 rounded-3xl relative overflow-hidden group flex flex-col justify-center">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><span className="text-4xl">🏁</span></div>
+                            <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-1">End Goal</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-2xl font-bold text-zinc-300 tracking-tight">₱{Math.floor(stats.projectedTotal).toLocaleString()}</p>
+                                {Math.abs(stats.trendDiff) > 0 && (<span className={`text-[10px] font-bold ${stats.trendDiff > 0 ? 'text-success' : 'text-danger'}`}>{stats.trendDiff > 0 ? '▲' : '▼'} ₱{Math.abs(Math.floor(stats.trendDiff))}</span>)}
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Tracker */}
                     <div className="glass rounded-3xl p-1 relative">
-                         <div className="flex justify-between items-center p-4 border-b border-zinc-800/50"><button onClick={() => setViewWeek(prev => Math.max(1, prev - 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === 1 ? 'opacity-20' : ''}`} disabled={viewWeek === 1}>←</button><div className="text-center"><h2 className="font-bold text-lg text-white tracking-tight">Week {viewWeek}</h2>{viewWeek === data.currentWeek ? <p className="text-xs text-zinc-500 mt-0.5">Pool: <span className="text-white font-mono">₱{stats.remainingInWeek}</span></p> : <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">HISTORY VIEW</span>}</div><button onClick={() => setViewWeek(prev => Math.min(data.currentWeek, prev + 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === data.currentWeek ? 'opacity-20' : ''}`} disabled={viewWeek === data.currentWeek}>→</button></div>
+                         <div className="flex justify-between items-center p-4 border-b border-zinc-800/50">
+                            <button onClick={() => setViewWeek(prev => Math.max(1, prev - 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === 1 ? 'opacity-20' : ''}`} disabled={viewWeek === 1}>←</button>
+                            <div className="text-center"><h2 className="font-bold text-lg text-white tracking-tight">Week {viewWeek}</h2>{viewWeek === data.currentWeek ? <p className="text-xs text-zinc-500 mt-0.5">Pool: <span className="text-white font-mono">₱{stats.remainingInWeek}</span></p> : <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">HISTORY VIEW</span>}</div>
+                            <button onClick={() => setViewWeek(prev => Math.min(data.currentWeek, prev + 1))} className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5 text-zinc-400 ${viewWeek === data.currentWeek ? 'opacity-20' : ''}`} disabled={viewWeek === data.currentWeek}>→</button>
+                         </div>
+
                          <div className="p-4 space-y-4">
                             {daysWithBudgets.map((day, idx) => {
                                 const dateLabel = idx === 0 ? weekDates.wed : weekDates.thu;
-                                const comm = parseFloat(day.commute) || 0; const fd = parseFloat(day.food) || 0; const foodLeft = day.budgetAvailable - comm - fd;
+                                const comm = parseFloat(day.commute) || 0;
+                                const fd = parseFloat(day.food) || 0;
+                                const foodLeft = day.budgetAvailable - comm - fd;
+                                
                                 return (
                                     <div key={day.id || idx} className={`p-5 rounded-2xl border transition-all duration-300 ${day.isSkipped ? 'border-zinc-800 bg-zinc-900 opacity-60' : day.isDone ? 'border-success/20 bg-success/5' : 'border-zinc-800 bg-black/20'}`}>
                                         <div className="flex justify-between items-center mb-4">
-                                            <div><span className="text-sm font-bold text-zinc-200 block tracking-tight">{dateLabel}</span>{!day.isSkipped && <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span>}{day.isSkipped && <span className="text-[10px] text-zinc-500 font-bold bg-zinc-800 px-2 py-0.5 rounded mt-1 inline-block">NO CLASS</span>}</div>
-                                            <div className="flex gap-2"><button onClick={() => toggleSkipped(day.id)} className={`text-[10px] px-3 py-1.5 font-bold rounded-full transition-all ${day.isSkipped ? 'bg-zinc-700 text-white' : 'bg-transparent border border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>{day.isSkipped ? 'Undo' : '⛔'}</button><button onClick={() => handleMarkDone(day.id)} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button></div>
+                                            <div>
+                                                <span className="text-sm font-bold text-zinc-200 block tracking-tight">{dateLabel}</span>
+                                                {!day.isSkipped && <span className="text-[10px] text-zinc-500 font-mono mt-1 block">Budget: ₱{day.budgetAvailable}</span>}
+                                                {day.isSkipped && <span className="text-[10px] text-zinc-500 font-bold bg-zinc-800 px-2 py-0.5 rounded mt-1 inline-block">NO CLASS</span>}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => toggleSkipped(day.id)} className={`text-[10px] px-3 py-1.5 font-bold rounded-full transition-all ${day.isSkipped ? 'bg-zinc-700 text-white' : 'bg-transparent border border-zinc-700 text-zinc-500 hover:border-zinc-500'}`}>{day.isSkipped ? 'Undo' : '⛔'}</button>
+                                                <button onClick={() => handleMarkDone(day.id)} className={`text-[10px] px-4 py-1.5 font-bold rounded-full transition-all tracking-wider ${day.isDone ? 'bg-success text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}>{day.isDone ? 'DONE' : 'MARK'}</button>
+                                            </div>
                                         </div>
+                                        
                                         <div className={`transition-opacity duration-300 ${day.isSkipped ? 'input-disabled' : 'opacity-100'}`}>
                                             <div className="grid grid-cols-2 gap-4 mb-4">
                                                 <div><p className="text-[10px] text-zinc-500 mb-2 uppercase tracking-wider text-center">Commute</p><NumberInput value={day.commute} onChange={(val) => updateDay(day.id, {commute: val})} /></div>
-                                                <div className="relative"><div className="flex justify-between items-center mb-2 px-1"><p className="text-[10px] text-zinc-500 uppercase tracking-wider">Food</p><span className={`text-[10px] font-mono ${foodLeft < 0 ? 'text-danger' : 'text-zinc-500'}`}>Avail: {foodLeft}</span></div><NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} /></div>
+                                                <div className="relative">
+                                                    <div className="flex justify-between items-center mb-2 px-1">
+                                                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Food</p>
+                                                        <span className={`text-[10px] font-mono ${foodLeft < 0 ? 'text-danger' : 'text-zinc-500'}`}>Avail: {foodLeft}</span>
+                                                    </div>
+                                                    <NumberInput value={day.food} placeholder="0" onChange={(val) => updateDay(day.id, {food: val})} />
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center"><span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-secondary' : 'text-zinc-500'}`}>{day.carryOver ? "To Unplanned Budget" : "To Savings"}</span><div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div></div>
+
+                                        <div className="pt-3 border-t border-zinc-800/50 flex justify-between items-center">
+                                            <span className={`text-[10px] tracking-wide transition-colors ${day.carryOver ? 'text-secondary' : 'text-zinc-500'}`}>{day.carryOver ? "To Unplanned Budget" : "To Savings"}</span>
+                                            <div><input type="checkbox" id={`switch-${day.id}`} className="switch-checkbox" checked={day.carryOver} onChange={() => updateDay(day.id, {carryOver: !day.carryOver})} /><label htmlFor={`switch-${day.id}`} className="switch-label"></label></div>
+                                        </div>
                                     </div>
                                 );
                             })}
                          </div>
-                         {viewWeek === data.currentWeek && (<div className="p-4 pt-0"><button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button></div>)}
+                         {viewWeek === data.currentWeek && (
+                            <div className="p-4 pt-0"><button onClick={finishWeek} disabled={!data.days.every(d => d.isDone)} className="w-full py-4 rounded-2xl font-bold text-black btn-action shadow-lg disabled:opacity-50 disabled:grayscale transition-all">Finish Week</button></div>
+                         )}
                     </div>
-                    <div className="text-center pb-8"><button onClick={() => setSpendModalOpen(true)} className="text-xs text-secondary border border-secondary/20 px-5 py-2.5 rounded-full hover:bg-secondary/10 transition-colors inline-flex items-center gap-2">Manage Unplanned</button></div>
-                    {overspendModalOpen && (<Modal isOpen={true} title="Budget Exceeded!" showCancel={true} onCancel={() => setOverspendModalOpen(null)} confirmText="Use Unplanned Fund" onConfirm={() => handleOverspendDecision('unplanned')} disabled={stats.unplannedBudgetAvailable < overspendModalOpen.amount}><div className="text-center mb-4"><p className="text-zinc-400 mb-2">You went over by <span className="text-white font-bold">₱{overspendModalOpen.amount}</span>.</p><p className="text-xs text-zinc-500">How do you want to cover this?</p></div><div className="space-y-3"><button onClick={() => handleOverspendDecision('next_day')} className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-sm hover:bg-zinc-800">Deduct from Next Day's Allowance</button>{stats.unplannedBudgetAvailable < overspendModalOpen.amount && <p className="text-[10px] text-danger mt-1 font-bold">Insufficient Unplanned Budget (₱{Math.floor(stats.unplannedBudgetAvailable)} available)</p>}</div></Modal>)}
-                    <Modal isOpen={spendModalOpen} title="Unplanned Budget" confirmText={unplannedType === 'spend' ? "Record Expense" : "Transfer to Savings"} isDanger={unplannedType === 'spend'} onConfirm={handleUnplannedSubmit} onCancel={() => setSpendModalOpen(false)}><div className="space-y-4"><div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 text-center mb-4"><p className="text-zinc-500 text-xs uppercase tracking-widest mb-1">Available Budget</p><p className={`text-2xl font-bold ${stats.unplannedBudgetAvailable < 0 ? 'text-danger' : 'text-secondary'}`}>₱{Math.floor(stats.unplannedBudgetAvailable).toLocaleString()}</p></div><div className="flex bg-zinc-900 p-1 rounded-xl mb-4"><button onClick={() => setUnplannedType('spend')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${unplannedType === 'spend' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500'}`}>Spend</button><button onClick={() => setUnplannedType('transfer')} disabled={stats.unplannedBudgetAvailable <= 0} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${unplannedType === 'transfer' ? 'bg-zinc-800 text-success shadow' : stats.unplannedBudgetAvailable <= 0 ? 'opacity-30 cursor-not-allowed text-zinc-600' : 'text-zinc-500'}`}>Save Instead</button></div><input type="date" value={spendDate} onChange={(e) => setSpendDate(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" /><input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" placeholder="Amount (₱)" />{unplannedType === 'spend' && <input type="text" value={spendReason} onChange={(e) => setSpendReason(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" placeholder="Reason (e.g., Coffee)" />}</div></Modal>
-                    <Modal isOpen={settingsOpen} title="Settings" confirmText="Save" onConfirm={saveSettings} onCancel={() => setSettingsOpen(false)}><div className="space-y-4"><div><label className="text-xs text-zinc-500 block mb-1">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none" /></div><button onClick={() => setLogsModalOpen(true)} className="w-full py-3 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-medium hover:bg-zinc-700">View Activity Logs</button><div className="flex items-center justify-between pt-4 border-t border-zinc-800"><label className="text-sm text-zinc-300">Show Chart</label><div><input type="checkbox" id="chart-switch" className="switch-checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} /><label htmlFor="chart-switch" className="switch-label"></label></div></div><div className="flex items-center justify-between pt-2"><label className="text-sm text-zinc-300">Status Notification</label><div><input type="checkbox" id="notif-switch" className="switch-checkbox" checked={tempConfig.enableNotif} onChange={() => { if(!tempConfig.enableNotif) requestNotifPermission(); setTempConfig({...tempConfig, enableNotif: !tempConfig.enableNotif}); }} /><label htmlFor="notif-switch" className="switch-label"></label></div></div><div className="pt-6 mt-6 border-t border-zinc-800"><p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-3 font-bold">Data Management</p><div className="space-y-3"><button onClick={() => setResetModalOpen('week')} className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-800">Reset Current Week Inputs</button><button onClick={() => setResetModalOpen('all')} className="w-full py-3 rounded-xl border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10">Start from Scratch (Reset All)</button></div></div></div></Modal>
+
+                    <div className="text-center pb-8">
+                        <button onClick={() => setSpendModalOpen(true)} className="text-xs text-secondary border border-secondary/20 px-5 py-2.5 rounded-full hover:bg-secondary/10 transition-colors inline-flex items-center gap-2">Manage Unplanned</button>
+                    </div>
+
+                    {/* MODALS */}
+                    {overspendModalOpen && (
+                        <Modal isOpen={true} title="Budget Exceeded!" showCancel={true} onCancel={() => setOverspendModalOpen(null)} confirmText="Use Unplanned Fund" onConfirm={() => handleOverspendDecision('unplanned')} disabled={stats.unplannedBudgetAvailable < overspendModalOpen.amount}>
+                            <div className="text-center mb-4">
+                                <p className="text-zinc-400 mb-2">You went over by <span className="text-white font-bold">₱{overspendModalOpen.amount}</span>.</p>
+                                <p className="text-xs text-zinc-500">How do you want to cover this?</p>
+                            </div>
+                            <div className="space-y-3">
+                                <button onClick={() => handleOverspendDecision('next_day')} className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-sm hover:bg-zinc-800">Deduct from Next Day's Allowance</button>
+                                {stats.unplannedBudgetAvailable < overspendModalOpen.amount && <p className="text-[10px] text-danger mt-1 font-bold">Insufficient Unplanned Budget (₱{Math.floor(stats.unplannedBudgetAvailable)} available)</p>}
+                            </div>
+                        </Modal>
+                    )}
+
+                    <Modal isOpen={spendModalOpen} title="Unplanned Budget" confirmText={unplannedType === 'spend' ? "Record Expense" : "Transfer to Savings"} isDanger={unplannedType === 'spend'} onConfirm={handleUnplannedSubmit} onCancel={() => setSpendModalOpen(false)}>
+                        <div className="space-y-4">
+                            <div className="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 text-center mb-4">
+                                <p className="text-zinc-500 text-xs uppercase tracking-widest mb-1">Available Budget</p>
+                                <p className={`text-2xl font-bold ${stats.unplannedBudgetAvailable < 0 ? 'text-danger' : 'text-secondary'}`}>₱{Math.floor(stats.unplannedBudgetAvailable).toLocaleString()}</p>
+                            </div>
+                            <div className="flex bg-zinc-900 p-1 rounded-xl mb-4">
+                                <button onClick={() => setUnplannedType('spend')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${unplannedType === 'spend' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500'}`}>Spend</button>
+                                <button onClick={() => setUnplannedType('transfer')} disabled={stats.unplannedBudgetAvailable <= 0} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${unplannedType === 'transfer' ? 'bg-zinc-800 text-success shadow' : stats.unplannedBudgetAvailable <= 0 ? 'opacity-30 cursor-not-allowed text-zinc-600' : 'text-zinc-500'}`}>Save Instead</button>
+                            </div>
+                            <input type="date" value={spendDate} onChange={(e) => setSpendDate(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" />
+                            <input type="number" value={spendAmount} onChange={(e) => setSpendAmount(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" placeholder="Amount (₱)" />
+                            {unplannedType === 'spend' && <input type="text" value={spendReason} onChange={(e) => setSpendReason(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-secondary outline-none" placeholder="Reason (e.g., Coffee)" />}
+                        </div>
+                    </Modal>
+
+                    <Modal isOpen={settingsOpen} title="Settings" confirmText="Save" onConfirm={saveSettings} onCancel={() => setSettingsOpen(false)}>
+                        <div className="space-y-4">
+                            <div><label className="text-xs text-zinc-500 block mb-1">Daily Limit (₱)</label><input type="number" value={tempConfig.dailyLimit} onChange={(e) => setTempConfig({...tempConfig, dailyLimit: parseInt(e.target.value)})} className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-zinc-600 outline-none" /></div>
+                            <button onClick={() => setLogsModalOpen(true)} className="w-full py-3 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-medium hover:bg-zinc-700">View Activity Logs</button>
+                            <div className="flex items-center justify-between pt-4 border-t border-zinc-800"><label className="text-sm text-zinc-300">Show Chart</label><div><input type="checkbox" id="chart-switch" className="switch-checkbox" checked={tempConfig.enableChart} onChange={() => setTempConfig({...tempConfig, enableChart: !tempConfig.enableChart})} /><label htmlFor="chart-switch" className="switch-label"></label></div></div><div className="flex items-center justify-between pt-2"><label className="text-sm text-zinc-300">Status Notification</label><div><input type="checkbox" id="notif-switch" className="switch-checkbox" checked={tempConfig.enableNotif} onChange={() => { if(!tempConfig.enableNotif) requestNotifPermission(); setTempConfig({...tempConfig, enableNotif: !tempConfig.enableNotif}); }} /><label htmlFor="notif-switch" className="switch-label"></label></div></div><div className="pt-6 mt-6 border-t border-zinc-800"><p className="text-[10px] text-zinc-600 uppercase tracking-widest mb-3 font-bold">Data Management</p><div className="space-y-3"><button onClick={() => setResetModalOpen('week')} className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-800">Reset Current Week Inputs</button><button onClick={() => setResetModalOpen('all')} className="w-full py-3 rounded-xl border border-danger/30 text-danger text-xs font-medium hover:bg-danger/10">Start from Scratch (Reset All)</button></div></div></div></Modal>
                     <Modal isOpen={logsModalOpen} title="Activity Logs" confirmText="Close" onConfirm={() => setLogsModalOpen(false)} showCancel={false}><div className="h-[60vh] overflow-hidden"><ActivityLogs data={data} onClose={() => setLogsModalOpen(false)} /></div></Modal>
                     {resetModalOpen === 'week' && ( <Modal isOpen={true} title="Reset Week?" confirmText="Yes, Reset" onConfirm={() => { setData(prev => ({ ...prev, days: prev.days.map(d => ({ ...d, food: '', commute: config.commuteCost, isDone: false, carryOver: false, isSkipped: false, negativeCarry: false, unplannedCover: false })) })); setResetModalOpen(null); setSettingsOpen(false); setToast({ message: "Week reset", type: "success" }); }} onCancel={() => setResetModalOpen(null)}>Are you sure? This clears inputs for the current week.</Modal> )}
                     {resetModalOpen === 'all' && ( <Modal isOpen={true} title="Delete Everything?" confirmText={isResetting ? "Deleting..." : "Yes, Delete All"} confirmDisabled={isResetting} isDanger={true} onConfirm={handleResetAll} onCancel={() => setResetModalOpen(null)}>This will wipe all data, history, and cloud settings permanently.</Modal> )}
+
                     <Modal isOpen={!!modal} title={modal?.title} onConfirm={modal?.onConfirm} onCancel={modal?.onCancel}>{modal?.children}</Modal>
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                 </div>
